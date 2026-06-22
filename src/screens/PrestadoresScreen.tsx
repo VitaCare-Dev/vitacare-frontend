@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import {
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
-  getComunas,
-  getEspecialidades,
-  getPrestadores,
-  getRegiones,
-  searchPrestadores,
+    getComunas,
+    getEspecialidades,
+    getPrestadores,
+    getRegiones,
+    searchPrestadores,
 } from "@/services/prestadoresApi";
 import { VitaCareTheme } from "@/theme/theme";
 import type { Prestador } from "@/types/prestador";
@@ -36,13 +43,17 @@ export default function PrestadoresScreen() {
       setErrorMessage("");
 
       try {
-        const [initialPrestadores, especialidadesData, regionesData, comunasData] =
-          await Promise.all([
-            getPrestadores(),
-            getEspecialidades(),
-            getRegiones(),
-            getComunas(),
-          ]);
+        const [
+          initialPrestadores,
+          especialidadesData,
+          regionesData,
+          comunasData,
+        ] = await Promise.all([
+          getPrestadores(),
+          getEspecialidades(),
+          getRegiones(),
+          getComunas(),
+        ]);
 
         if (!isMounted) {
           return;
@@ -108,11 +119,13 @@ export default function PrestadoresScreen() {
       return comunas;
     }
 
-    return [...new Set(
-      prestadores
-        .filter((prestador) => prestador.region === selectedRegion)
-        .map((prestador) => prestador.comuna),
-    )];
+    return [
+      ...new Set(
+        prestadores
+          .filter((prestador) => prestador.region === selectedRegion)
+          .map((prestador) => prestador.comuna),
+      ),
+    ];
   }, [comunas, prestadores, selectedRegion]);
 
   const renderBadge = (estado: Prestador["estadoValidacion"]) => {
@@ -148,7 +161,9 @@ export default function PrestadoresScreen() {
       </View>
 
       <Text style={styles.cardDetail}>RUT: {prestador.rut}</Text>
-      <Text style={styles.cardDetail}>Registro profesional: {prestador.registroProfesional}</Text>
+      <Text style={styles.cardDetail}>
+        Registro profesional: {prestador.registroProfesional}
+      </Text>
       <Text style={styles.cardDetail}>Región: {prestador.region}</Text>
       <Text style={styles.cardDetail}>Comuna: {prestador.comuna}</Text>
 
@@ -169,7 +184,10 @@ export default function PrestadoresScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Prestadores de salud</Text>
           <Text style={styles.subtitle}>
@@ -219,14 +237,23 @@ export default function PrestadoresScreen() {
         <View style={styles.resultsSection}>
           <Text style={styles.sectionTitle}>Profesionales disponibles</Text>
           <Text style={styles.helperText}>
-            Usa el buscador por nombre o especialidad, y apóyate en los filtros para acotar la lista.
+            Usa el buscador por nombre o especialidad, y apóyate en los filtros
+            para acotar la lista.
           </Text>
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-          {isLoading ? <Text style={styles.helperText}>Cargando prestadores...</Text> : null}
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+          {isLoading ? (
+            <Text style={styles.helperText}>Cargando prestadores...</Text>
+          ) : null}
           {!isLoading && prestadores.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No se encontraron prestadores</Text>
-              <Text style={styles.helperText}>Prueba cambiando los filtros o el texto de búsqueda.</Text>
+              <Text style={styles.emptyTitle}>
+                No se encontraron prestadores
+              </Text>
+              <Text style={styles.helperText}>
+                Prueba cambiando los filtros o el texto de búsqueda.
+              </Text>
             </View>
           ) : null}
           {isLoading ? null : prestadores.map(renderPrestadorCard)}
@@ -253,17 +280,28 @@ function FilterSection(props: Readonly<FilterSectionProps>) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.filterChipRow}>
           <Pressable
-            style={[styles.filterChip, !selectedValue && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              !selectedValue && styles.filterChipActive,
+            ]}
             onPress={() => onSelect("")}
           >
-            <Text style={[styles.filterChipText, !selectedValue && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                !selectedValue && styles.filterChipTextActive,
+              ]}
+            >
               {emptyLabel}
             </Text>
           </Pressable>
           {options.map((option) => (
             <Pressable
               key={`${label}-${option}`}
-              style={[styles.filterChip, selectedValue === option && styles.filterChipActive]}
+              style={[
+                styles.filterChip,
+                selectedValue === option && styles.filterChipActive,
+              ]}
               onPress={() => onSelect(option)}
             >
               <Text

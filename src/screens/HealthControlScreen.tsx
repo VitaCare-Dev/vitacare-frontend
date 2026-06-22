@@ -7,8 +7,8 @@ import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { healthControlOptions } from "@/data/mockData";
-import type { HealthControlOption } from "@/types";
 import { VitaCareTheme } from "@/theme/theme";
+import type { HealthControlOption } from "@/types";
 
 export default function HealthControlScreen() {
   const router = useRouter();
@@ -21,6 +21,8 @@ export default function HealthControlScreen() {
         return "/glucose";
       case "tratamiento":
         return "/treatment";
+      case "lipidos":
+        return "/cholesterol";
       default:
         return "/alerts-recommendations";
     }

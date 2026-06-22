@@ -7,8 +7,8 @@ import type {
     IntakeHistoryItem,
     Medication,
     Patient,
-    VitalMeasurement,
     Provider,
+    VitalMeasurement,
 } from "@/types";
 
 export const patient: Patient = {

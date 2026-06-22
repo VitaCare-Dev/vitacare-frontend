@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from "react";
 
-import { initialTreatmentMedications, patientMedicalProfile, type TreatmentMedicationRecord } from "@/data/medicalModel";
+import {
+    initialTreatmentMedications,
+    patientMedicalProfile,
+    type TreatmentMedicationRecord,
+} from "@/data/medicalModel";
 import type { Medication } from "@/types";
 
 type CreateTreatmentMedicationInput = {

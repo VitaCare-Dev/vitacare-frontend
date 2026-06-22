@@ -27,7 +27,6 @@ export type IconName =
   | "usuario"
   | "temperatura";
 
-
 type IconImageProps = Readonly<{
   name: IconName;
   size?: number;

@@ -4,7 +4,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { getPatientMedicalProfile, useTreatmentMedicationRecords } from "@/store/medicalStore";
+import {
+    getPatientMedicalProfile,
+    useTreatmentMedicationRecords,
+} from "@/store/medicalStore";
 import { VitaCareTheme } from "@/theme/theme";
 
 export default function MedicalInfoScreen() {
@@ -20,22 +23,34 @@ export default function MedicalInfoScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Paciente</Text>
         <InfoCard>
-          <InfoRow label="Paciente ID" value={String(medicalProfile.patientId)} />
+          <InfoRow
+            label="Paciente ID"
+            value={String(medicalProfile.patientId)}
+          />
           <InfoRow label="Usuario ID" value={String(medicalProfile.userId)} />
           <InfoRow label="RUT" value={medicalProfile.rut} />
           <InfoRow
             label="Nombre completo"
             value={`${medicalProfile.firstName} ${medicalProfile.lastNamePaternal} ${medicalProfile.lastNameMaternal}`}
           />
-          <InfoRow label="Fecha de nacimiento" value={medicalProfile.birthDate} />
+          <InfoRow
+            label="Fecha de nacimiento"
+            value={medicalProfile.birthDate}
+          />
         </InfoCard>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Contacto y dirección</Text>
         <InfoCard>
-          <InfoRow label="Teléfono principal" value={medicalProfile.primaryPhone} />
-          <InfoRow label="Teléfono secundario" value={medicalProfile.secondaryPhone} />
+          <InfoRow
+            label="Teléfono principal"
+            value={medicalProfile.primaryPhone}
+          />
+          <InfoRow
+            label="Teléfono secundario"
+            value={medicalProfile.secondaryPhone}
+          />
           <InfoRow label="Calle" value={medicalProfile.address.street} />
           <InfoRow label="Número" value={medicalProfile.address.number} />
           <InfoRow label="Comuna" value={medicalProfile.address.commune} />
@@ -49,7 +64,9 @@ export default function MedicalInfoScreen() {
           {medicalProfile.diseases.map((disease) => (
             <View key={disease.diseaseId} style={styles.diseaseItem}>
               <Text style={styles.diseaseName}>{disease.name}</Text>
-              <Text style={styles.diseaseDescription}>{disease.description}</Text>
+              <Text style={styles.diseaseDescription}>
+                {disease.description}
+              </Text>
             </View>
           ))}
         </InfoCard>
@@ -58,19 +75,40 @@ export default function MedicalInfoScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Umbrales médicos</Text>
         <InfoCard>
-          <InfoRow label="Glucosa mínima" value={`${medicalProfile.thresholds.glucoseMin} mg/dL`} />
-          <InfoRow label="Glucosa máxima" value={`${medicalProfile.thresholds.glucoseMax} mg/dL`} />
-          <InfoRow label="Sistólica máxima" value={`${medicalProfile.thresholds.systolicMax} mmHg`} />
-          <InfoRow label="Diastólica máxima" value={`${medicalProfile.thresholds.diastolicMax} mmHg`} />
-          <InfoRow label="Temperatura máxima" value={`${medicalProfile.thresholds.temperatureMax} °C`} />
+          <InfoRow
+            label="Glucosa mínima"
+            value={`${medicalProfile.thresholds.glucoseMin} mg/dL`}
+          />
+          <InfoRow
+            label="Glucosa máxima"
+            value={`${medicalProfile.thresholds.glucoseMax} mg/dL`}
+          />
+          <InfoRow
+            label="Sistólica máxima"
+            value={`${medicalProfile.thresholds.systolicMax} mmHg`}
+          />
+          <InfoRow
+            label="Diastólica máxima"
+            value={`${medicalProfile.thresholds.diastolicMax} mmHg`}
+          />
+          <InfoRow
+            label="Temperatura máxima"
+            value={`${medicalProfile.thresholds.temperatureMax} °C`}
+          />
         </InfoCard>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tratamiento actual</Text>
         <InfoCard>
-          <InfoRow label="Medicamentos activos" value={String(activeTreatments.length)} />
-          <InfoRow label="Total registrados" value={String(treatmentMedications.length)} />
+          <InfoRow
+            label="Medicamentos activos"
+            value={String(activeTreatments.length)}
+          />
+          <InfoRow
+            label="Total registrados"
+            value={String(treatmentMedications.length)}
+          />
         </InfoCard>
       </View>
 

@@ -35,7 +35,9 @@ export default function TreatmentScreen() {
           ))
         ) : (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No hay medicamentos registrados</Text>
+            <Text style={styles.emptyTitle}>
+              No hay medicamentos registrados
+            </Text>
             <Text style={styles.emptyText}>
               Agrega un tratamiento para comenzar el seguimiento.
             </Text>

@@ -84,4 +84,3 @@ export type Provider = {
   region: string;
   commune: string;
 };
-

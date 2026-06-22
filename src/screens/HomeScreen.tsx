@@ -56,10 +56,14 @@ export default function HomeScreen() {
             </Text>
           </View>
           <Text style={styles.nextMedicationTitle}>
-            {nextMedication ? nextMedication.name : "No hay medicamentos activos"}
+            {nextMedication
+              ? nextMedication.name
+              : "No hay medicamentos activos"}
           </Text>
           <Text style={styles.nextMedicationDetail}>
-            {nextMedication ? nextMedication.frequency : "Agrega un tratamiento para verlo aquí."}
+            {nextMedication
+              ? nextMedication.frequency
+              : "Agrega un tratamiento para verlo aquí."}
           </Text>
           {nextMedication ? (
             <Text style={styles.nextMedicationDetail}>

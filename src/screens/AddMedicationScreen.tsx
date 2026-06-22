@@ -20,7 +20,12 @@ export default function AddMedicationScreen() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = () => {
-    if (!medicationName.trim() || !dose.trim() || !frequencyHours.trim() || !startDate.trim()) {
+    if (
+      !medicationName.trim() ||
+      !dose.trim() ||
+      !frequencyHours.trim() ||
+      !startDate.trim()
+    ) {
       setErrorMessage("Completa nombre, dosis, frecuencia y fecha de inicio.");
       return;
     }
@@ -110,7 +115,9 @@ export default function AddMedicationScreen() {
               onPress={() => setActive(true)}
               style={[styles.toggleChip, active && styles.toggleChipActive]}
             >
-              <Text style={[styles.toggleText, active && styles.toggleTextActive]}>
+              <Text
+                style={[styles.toggleText, active && styles.toggleTextActive]}
+              >
                 Activo
               </Text>
             </Pressable>
@@ -118,7 +125,9 @@ export default function AddMedicationScreen() {
               onPress={() => setActive(false)}
               style={[styles.toggleChip, !active && styles.toggleChipActive]}
             >
-              <Text style={[styles.toggleText, !active && styles.toggleTextActive]}>
+              <Text
+                style={[styles.toggleText, !active && styles.toggleTextActive]}
+              >
                 Inactivo
               </Text>
             </Pressable>
@@ -128,7 +137,11 @@ export default function AddMedicationScreen() {
         {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
       </View>
 
-      <AppButton title="Guardar medicamento" icon="agregar" onPress={handleSubmit} />
+      <AppButton
+        title="Guardar medicamento"
+        icon="agregar"
+        onPress={handleSubmit}
+      />
     </ScreenContainer>
   );
 }

@@ -20,7 +20,9 @@ function normalizeValue(value: string) {
 }
 
 function uniqueSorted(values: string[]) {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right, "es"));
+  return [...new Set(values)].sort((left, right) =>
+    left.localeCompare(right, "es"),
+  );
 }
 
 // Simulación académica del consumo de la API de Prestadores de la Superintendencia de Salud.
@@ -40,22 +42,30 @@ export async function searchPrestadores(
   try {
     return await simulateHttpResponse(() => {
       const query = params.nombre ? normalizeValue(params.nombre) : "";
-      const especialidad = params.especialidad ? normalizeValue(params.especialidad) : "";
+      const especialidad = params.especialidad
+        ? normalizeValue(params.especialidad)
+        : "";
       const region = params.region ? normalizeValue(params.region) : "";
       const comuna = params.comuna ? normalizeValue(params.comuna) : "";
 
       return prestadoresMock.filter((prestador) => {
-        const matchesQuery = !query ||
+        const matchesQuery =
+          !query ||
           normalizeValue(prestador.nombre).includes(query) ||
           normalizeValue(prestador.especialidad).includes(query) ||
           normalizeValue(prestador.rut).includes(query) ||
           normalizeValue(prestador.registroProfesional).includes(query);
         const matchesEspecialidad =
-          !especialidad || normalizeValue(prestador.especialidad).includes(especialidad);
-        const matchesRegion = !region || normalizeValue(prestador.region).includes(region);
-        const matchesComuna = !comuna || normalizeValue(prestador.comuna).includes(comuna);
+          !especialidad ||
+          normalizeValue(prestador.especialidad).includes(especialidad);
+        const matchesRegion =
+          !region || normalizeValue(prestador.region).includes(region);
+        const matchesComuna =
+          !comuna || normalizeValue(prestador.comuna).includes(comuna);
 
-        return matchesQuery && matchesEspecialidad && matchesRegion && matchesComuna;
+        return (
+          matchesQuery && matchesEspecialidad && matchesRegion && matchesComuna
+        );
       });
     });
   } catch (error) {
@@ -130,7 +140,9 @@ export async function validarPrestador(valor: string): Promise<Prestador> {
 // Simulación académica del consumo de la API de Prestadores de la Superintendencia de Salud.
 export async function getEspecialidades(): Promise<string[]> {
   try {
-    return await simulateHttpResponse(() => uniqueSorted(prestadoresMock.map((prestador) => prestador.especialidad)));
+    return await simulateHttpResponse(() =>
+      uniqueSorted(prestadoresMock.map((prestador) => prestador.especialidad)),
+    );
   } catch (error) {
     console.error("Error al obtener especialidades simuladas", error);
     return [];
@@ -140,7 +152,9 @@ export async function getEspecialidades(): Promise<string[]> {
 // Simulación académica del consumo de la API de Prestadores de la Superintendencia de Salud.
 export async function getRegiones(): Promise<string[]> {
   try {
-    return await simulateHttpResponse(() => uniqueSorted(prestadoresMock.map((prestador) => prestador.region)));
+    return await simulateHttpResponse(() =>
+      uniqueSorted(prestadoresMock.map((prestador) => prestador.region)),
+    );
   } catch (error) {
     console.error("Error al obtener regiones simuladas", error);
     return [];
@@ -150,7 +164,9 @@ export async function getRegiones(): Promise<string[]> {
 // Simulación académica del consumo de la API de Prestadores de la Superintendencia de Salud.
 export async function getComunas(): Promise<string[]> {
   try {
-    return await simulateHttpResponse(() => uniqueSorted(prestadoresMock.map((prestador) => prestador.comuna)));
+    return await simulateHttpResponse(() =>
+      uniqueSorted(prestadoresMock.map((prestador) => prestador.comuna)),
+    );
   } catch (error) {
     console.error("Error al obtener comunas simuladas", error);
     return [];

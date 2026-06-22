@@ -1,6 +1,6 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
@@ -67,7 +67,10 @@ export default function PrestadorDetailScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
         <ScreenHeader showBackButton title="Detalle del prestador" />
 
         <View style={styles.headerCard}>
@@ -83,7 +86,10 @@ export default function PrestadorDetailScreen() {
 
         <DetailCard title="Datos del prestador">
           <DetailRow label="RUT" value={prestador.rut} />
-          <DetailRow label="Registro profesional" value={prestador.registroProfesional} />
+          <DetailRow
+            label="Registro profesional"
+            value={prestador.registroProfesional}
+          />
           <DetailRow label="Institución" value={prestador.institucion} />
           <DetailRow label="Teléfono" value={prestador.telefono} />
           <DetailRow label="Email" value={prestador.email} />
@@ -93,23 +99,36 @@ export default function PrestadorDetailScreen() {
           <DetailRow label="Dirección" value={prestador.direccion} />
           <DetailRow label="Región" value={prestador.region} />
           <DetailRow label="Comuna" value={prestador.comuna} />
-          <DetailRow label="Fecha de actualización" value={prestador.fechaActualizacion} />
+          <DetailRow
+            label="Fecha de actualización"
+            value={prestador.fechaActualizacion}
+          />
         </DetailCard>
 
         <View style={styles.noticeCard}>
           <IconImage name="nota" size={20} />
           <Text style={styles.noticeText}>
-            Información simulada para fines académicos. En una versión real, estos datos serían consultados desde la API de Prestadores de la Superintendencia de Salud.
+            Información simulada para fines académicos. En una versión real,
+            estos datos serían consultados desde la API de Prestadores de la
+            Superintendencia de Salud.
           </Text>
         </View>
 
-        <AppButton title="Volver" variant="outline" icon="home" iconTone="green" onPress={() => router.back()} />
+        <AppButton
+          title="Volver"
+          variant="outline"
+          icon="home"
+          iconTone="green"
+          onPress={() => router.back()}
+        />
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-function DetailCard(props: Readonly<{ title: string; children: React.ReactNode }>) {
+function DetailCard(
+  props: Readonly<{ title: string; children: React.ReactNode }>,
+) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{props.title}</Text>
@@ -127,7 +146,9 @@ function DetailRow(props: Readonly<{ label: string; value: string }>) {
   );
 }
 
-function StatusBadge(props: Readonly<{ estado: Prestador["estadoValidacion"] }>) {
+function StatusBadge(
+  props: Readonly<{ estado: Prestador["estadoValidacion"] }>,
+) {
   const { estado } = props;
   const badgeStyle =
     estado === "Validado"
