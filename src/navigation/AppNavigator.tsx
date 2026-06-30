@@ -1,6 +1,27 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { useEffect } from "react";
+
+import { useAuth } from "@/context/AuthContext";
 
 export function AppNavigator() {
+  const auth = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (auth.status === "loading") return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (auth.status === "unauthenticated" && !inAuthGroup) {
+      router.replace("/(auth)/login");
+    } else if (auth.status === "authenticated" && inAuthGroup) {
+      router.replace("/(tabs)/home");
+    }
+  }, [auth.status, segments]);
+
+  if (auth.status === "loading") return null;
+
   return (
     <Stack
       screenOptions={{

@@ -1,14 +1,47 @@
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { BrandHeader } from "@/components/BrandHeader";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { auth } from "@/config/firebase";
 import { VitaCareTheme } from "@/theme/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin() {
+    if (!email.trim() || !password) {
+      Alert.alert("Campos requeridos", "Por favor ingresa tu correo y contraseña.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      const messages: Record<string, string> = {
+        "auth/invalid-credential": "Correo o contraseña incorrectos.",
+        "auth/user-not-found": "No existe una cuenta con ese correo.",
+        "auth/wrong-password": "Contraseña incorrecta.",
+        "auth/invalid-email": "El correo ingresado no es válido.",
+        "auth/too-many-requests": "Demasiados intentos. Intenta más tarde.",
+      };
+      Alert.alert(
+        "Error al iniciar sesión",
+        messages[error.code] ?? "Ocurrió un error. Intenta nuevamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -22,22 +55,25 @@ export default function LoginScreen() {
           label="Correo electrónico"
           placeholder="correo@vitacare.cl"
           icon="usuario"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         <AppInput
           label="Contraseña"
           placeholder="••••••••"
           secureTextEntry
           icon="medicamento"
+          value={password}
+          onChangeText={setPassword}
         />
 
-        <View style={styles.checkboxRow}>
-          <View style={styles.checkbox} />
-          <Text style={styles.checkboxLabel}>Recordarme</Text>
-        </View>
-
         <AppButton
-          title="Iniciar sesión"
-          onPress={() => router.push("/home")}
+          title={loading ? "Ingresando..." : "Iniciar sesión"}
+          onPress={handleLogin}
+          disabled={loading}
         />
 
         <Pressable onPress={() => router.push("/register")}>
@@ -70,24 +106,6 @@ const styles = StyleSheet.create({
   form: {
     marginTop: VitaCareTheme.spacing.xl,
     gap: VitaCareTheme.spacing.md,
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1.5,
-    borderColor: VitaCareTheme.colors.primary,
-    borderRadius: 4,
-    backgroundColor: VitaCareTheme.colors.surface,
-  },
-  checkboxLabel: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
   },
   link: {
     textAlign: "right",

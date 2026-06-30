@@ -1,5 +1,8 @@
+import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
+
+import { auth } from "@/config/firebase";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
@@ -10,6 +13,13 @@ import { VitaCareTheme } from "@/theme/theme";
 
 export default function ProfileScreen() {
   const router = useRouter();
+
+  function handleLogout() {
+    Alert.alert("Cerrar sesión", "¿Estás seguro que quieres salir?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Cerrar sesión", style: "destructive", onPress: () => signOut(auth) },
+    ]);
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -49,6 +59,12 @@ export default function ProfileScreen() {
         variant="outline"
         iconTone="green"
         onPress={() => router.push("/providers")}
+      />
+
+      <AppButton
+        title="Cerrar sesión"
+        variant="outline"
+        onPress={handleLogout}
       />
     </ScreenContainer>
   );
