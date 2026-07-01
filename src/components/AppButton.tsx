@@ -11,6 +11,7 @@ type AppButtonProps = Readonly<{
   icon?: IconName;
   iconTone?: "green" | "white";
   trailing?: ReactNode;
+  disabled?: boolean;
 }>;
 
 export function AppButton(props: AppButtonProps) {
@@ -21,15 +22,18 @@ export function AppButton(props: AppButtonProps) {
     icon,
     iconTone = "white",
     trailing,
+    disabled = false,
   } = props;
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.button,
         styles[variant],
         pressed && styles.pressed,
+        disabled && styles.disabled,
       ]}
     >
       <View style={styles.content}>
@@ -87,5 +91,8 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
     transform: [{ scale: 0.99 }],
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
