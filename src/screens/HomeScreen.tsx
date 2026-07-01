@@ -30,6 +30,11 @@ type GlucoseRecord = {
   glucosa: number;
 };
 
+/** Espejo de LipidsDto del BFF. */
+type LipidsRecord = {
+  colesterolTotal: number;
+};
+
 /** Espejo de VitalsDto del BFF. */
 type VitalsRecord = {
   presionSistolica: number | null;
@@ -102,6 +107,12 @@ export default function HomeScreen() {
     enabled,
   });
 
+  const lipidsQuery = useQuery({
+    queryKey: queryKeys.latestLipids,
+    queryFn: () => getLatestOrNull<LipidsRecord>("/api/measurements/lipids/latest"),
+    enabled,
+  });
+
   const activeMedicationQuery = useQuery({
     queryKey: queryKeys.medicationsActive,
     queryFn: () => apiGet<MedicationRecord[]>("/api/medications?active=true"),
@@ -112,6 +123,7 @@ export default function HomeScreen() {
   const hasMeasurements = historyQuery.data ? historyQuery.data.length > 0 : null;
   const latestGlucose = glucoseQuery.data ?? null;
   const latestVitals = vitalsQuery.data ?? null;
+  const latestLipids = lipidsQuery.data ?? null;
   const activeMedication = activeMedicationQuery.data?.[0] ?? null;
 
   const summaryCards: SummaryCard[] = [];
@@ -138,6 +150,14 @@ export default function HomeScreen() {
       value: String(latestGlucose.glucosa),
       unit: "mg/dL",
       icon: "glucosa",
+    });
+  }
+  if (latestLipids) {
+    summaryCards.push({
+      label: "Colesterol total",
+      value: String(latestLipids.colesterolTotal),
+      unit: "mg/dL",
+      icon: "corazon",
     });
   }
 

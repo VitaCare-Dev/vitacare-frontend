@@ -33,7 +33,9 @@ export default function GlucoseScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestGlucose });
-      router.back();
+      Alert.alert("Registro guardado", "Tu medición de glucosa se guardó correctamente.", [
+        { text: "Aceptar", onPress: () => router.back() },
+      ]);
     },
     onError: (error) => {
       const message =

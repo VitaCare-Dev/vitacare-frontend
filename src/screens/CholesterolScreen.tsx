@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
@@ -40,7 +40,9 @@ export default function CholesterolScreen() {
       setTriglycerides("");
       setNotes("");
       setErrorMessage("");
-      router.back();
+      Alert.alert("Registro guardado", "Tu perfil lipídico se guardó correctamente.", [
+        { text: "Aceptar", onPress: () => router.back() },
+      ]);
     },
     onError: (error) => {
       setErrorMessage(
