@@ -2,7 +2,6 @@ import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -31,7 +30,6 @@ function toIsoDate(date: Date): string {
 }
 
 export default function RegisterScreen() {
-  const router = useRouter();
   const authState = useAuth();
   const isCompletingProfile = authState.status === "authenticated";
   const [email, setEmail] = useState("");
@@ -65,7 +63,6 @@ export default function RegisterScreen() {
         telefonoPrincipal: telefono.trim(),
       });
       await refreshAuthProfile();
-      router.replace("/(tabs)/home");
     } catch (error) {
       const message =
         error instanceof ApiError

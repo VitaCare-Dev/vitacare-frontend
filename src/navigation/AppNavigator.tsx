@@ -13,13 +13,16 @@ export function AppNavigator() {
 
     const inAuthGroup = segments[0] === "(auth)";
     const onRegisterScreen = segments[0] === "(auth)" && segments[1] === "register";
+    const onSelectDiseaseScreen = segments[0] === "(auth)" && segments[1] === "select-disease";
 
     if (auth.status === "unauthenticated" && !inAuthGroup) {
       router.replace("/(auth)/login");
     } else if (auth.status === "authenticated") {
       if (!auth.hasProfile && !onRegisterScreen) {
         router.replace("/register");
-      } else if (auth.hasProfile && inAuthGroup) {
+      } else if (auth.hasProfile && !auth.hasDisease && !onSelectDiseaseScreen) {
+        router.replace("/select-disease");
+      } else if (auth.hasProfile && auth.hasDisease && inAuthGroup) {
         router.replace("/(tabs)/home");
       }
     }
