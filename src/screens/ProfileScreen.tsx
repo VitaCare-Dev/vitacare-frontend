@@ -1,6 +1,7 @@
 import { signOut } from "firebase/auth";
-import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
 import { auth } from "@/config/firebase";
 
@@ -8,17 +9,76 @@ import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { patient } from "@/data/mockData";
+import { apiGet } from "@/services/apiClient";
 import { VitaCareTheme } from "@/theme/theme";
+
+/** Espejo de PatientDto del BFF. */
+type PatientRecord = {
+  idPaciente: number;
+  rut: string;
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+  fechaNacimiento: string;
+  telefonoPrincipal: string;
+  telefonoSecundario: string | null;
+};
+
+/** Espejo de AddressDto del BFF. */
+type AddressRecord = {
+  calle: string;
+  numero: string;
+  comuna: string;
+  region: string;
+};
+
+/** Espejo de DiseaseDto del BFF. */
+type DiseaseRecord = {
+  idEnfermedad: number;
+  nombreEnfermedad: string;
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [patient, setPatient] = useState<PatientRecord | null>(null);
+  const [address, setAddress] = useState<AddressRecord | null>(null);
+  const [diseases, setDiseases] = useState<DiseaseRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      Promise.all([
+        apiGet<PatientRecord>("/api/patients/me"),
+        apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
+        apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
+      ])
+        .then(([patientData, addresses, diseaseList]) => {
+          setPatient(patientData);
+          setAddress(addresses[0] ?? null);
+          setDiseases(diseaseList);
+        })
+        .catch(() => {
+          setPatient(null);
+        })
+        .finally(() => setLoading(false));
+    }, [])
+  );
 
   function handleLogout() {
     Alert.alert("Cerrar sesión", "¿Estás seguro que quieres salir?", [
       { text: "Cancelar", style: "cancel" },
       { text: "Cerrar sesión", style: "destructive", onPress: () => signOut(auth) },
     ]);
+  }
+
+  if (loading) {
+    return (
+      <ScreenContainer scrollable>
+        <ScreenHeader />
+        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+      </ScreenContainer>
+    );
   }
 
   return (
@@ -28,22 +88,38 @@ export default function ProfileScreen() {
         <View style={styles.avatarWrap}>
           <IconImage name="usuario" size={64} />
         </View>
-        <Text style={styles.name}>{patient.fullName}</Text>
-        <Text style={styles.contact}>{patient.rut}</Text>
+        <Text style={styles.name}>
+          {patient ? `${patient.nombre} ${patient.apellidoPaterno}` : "Sin datos"}
+        </Text>
+        <Text style={styles.contact}>{patient?.rut ?? ""}</Text>
       </View>
 
       <View style={styles.card}>
-        <DetailRow label="Fecha de nacimiento" value={patient.birthDate} />
-        <DetailRow label="Teléfono principal" value={patient.phonePrimary} />
-        <DetailRow label="Teléfono secundario" value={patient.phoneSecondary} />
-        <DetailRow label="Dirección" value={patient.address} />
+        <DetailRow label="Fecha de nacimiento" value={patient?.fechaNacimiento ?? "-"} />
+        <DetailRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
+        <DetailRow
+          label="Teléfono secundario"
+          value={patient?.telefonoSecundario ?? "Sin registrar"}
+        />
+        <DetailRow
+          label="Dirección"
+          value={
+            address
+              ? `${address.calle} ${address.numero}, ${address.comuna}, ${address.region}`
+              : "Sin dirección registrada"
+          }
+        />
         <View style={styles.diseaseBlock}>
           <Text style={styles.blockTitle}>Enfermedades asociadas</Text>
-          {patient.diseases.map((item) => (
-            <Text key={item} style={styles.diseaseItem}>
-              • {item}
-            </Text>
-          ))}
+          {diseases.length > 0 ? (
+            diseases.map((item) => (
+              <Text key={item.idEnfermedad} style={styles.diseaseItem}>
+                • {item.nombreEnfermedad}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.diseaseItem}>Sin enfermedades registradas</Text>
+          )}
         </View>
       </View>
 
@@ -83,6 +159,9 @@ function DetailRow({
 }
 
 const styles = StyleSheet.create({
+  loader: {
+    marginTop: VitaCareTheme.spacing.xl,
+  },
   header: {
     alignItems: "center",
     gap: VitaCareTheme.spacing.sm,
