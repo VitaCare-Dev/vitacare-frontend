@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -6,10 +7,21 @@ import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { ApiError, apiPost } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
+
+type LipidsPayload = {
+  colesterolTotal: number;
+  colesterolLDL: number;
+  colesterolHDL: number;
+  trigliceridos: number;
+  notas?: string;
+};
 
 export default function CholesterolScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [cholesterolTotal, setCholesterolTotal] = useState("");
   const [ldl, setLdl] = useState("");
   const [hdl, setHdl] = useState("");
@@ -17,32 +29,51 @@ export default function CholesterolScreen() {
   const [notes, setNotes] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const saveMutation = useMutation({
+    mutationFn: (payload: LipidsPayload) => apiPost("/api/measurements/lipids", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.latestLipids });
+      setCholesterolTotal("");
+      setLdl("");
+      setHdl("");
+      setTriglycerides("");
+      setNotes("");
+      setErrorMessage("");
+      router.back();
+    },
+    onError: (error) => {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "No se pudo registrar el colesterol."
+      );
+    },
+  });
+
   const handleSave = () => {
-    if (!cholesterolTotal || !ldl || !hdl || !triglycerides) {
-      setErrorMessage("Por favor completa todos los campos requeridos.");
+    const colesterolTotalValue = Number(cholesterolTotal);
+    const ldlValue = Number(ldl);
+    const hdlValue = Number(hdl);
+    const trigliceridosValue = Number(triglycerides);
+
+    if (
+      !cholesterolTotal ||
+      !ldl ||
+      !hdl ||
+      !triglycerides ||
+      [colesterolTotalValue, ldlValue, hdlValue, trigliceridosValue].some(Number.isNaN)
+    ) {
+      setErrorMessage("Por favor completa todos los campos requeridos con valores numéricos.");
       return;
     }
-
-    // Aquí se guardarían los datos (en un estado global o API)
-    console.log({
-      cholesterolTotal,
-      ldl,
-      hdl,
-      triglycerides,
-      notes,
-      date: new Date().toISOString(),
-    });
-
-    // Limpiar formulario
-    setCholesterolTotal("");
-    setLdl("");
-    setHdl("");
-    setTriglycerides("");
-    setNotes("");
     setErrorMessage("");
 
-    // Volver a la pantalla anterior
-    router.back();
+    saveMutation.mutate({
+      colesterolTotal: colesterolTotalValue,
+      colesterolLDL: ldlValue,
+      colesterolHDL: hdlValue,
+      trigliceridos: trigliceridosValue,
+      notas: notes.trim() || undefined,
+    });
   };
 
   return (
@@ -123,7 +154,11 @@ export default function CholesterolScreen() {
         </View>
       </View>
 
-      <AppButton title="Guardar registro" onPress={handleSave} />
+      <AppButton
+        title={saveMutation.isPending ? "Guardando..." : "Guardar registro"}
+        onPress={handleSave}
+        disabled={saveMutation.isPending}
+      />
     </ScreenContainer>
   );
 }
