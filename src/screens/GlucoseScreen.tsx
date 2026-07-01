@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
@@ -6,9 +8,53 @@ import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { glucosePeriods } from "@/data/mockData";
+import { ApiError, apiPost } from "@/services/apiClient";
 import { VitaCareTheme } from "@/theme/theme";
+import type { GlucosePeriod } from "@/types";
+
+/** Mapea el período en español de la UI al enum PeriodoGlucosa del backend. */
+const PERIOD_TO_BACKEND: Record<GlucosePeriod, string> = {
+  "En ayunas": "AYUNAS",
+  "Después de comer": "POSTPRANDIAL",
+  "Antes de dormir": "NOCTURNA",
+};
 
 export default function GlucoseScreen() {
+  const router = useRouter();
+  const [glucosa, setGlucosa] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState<GlucosePeriod | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    const glucosaValue = Number(glucosa);
+    if (!glucosa.trim() || Number.isNaN(glucosaValue)) {
+      Alert.alert("Valor inválido", "Ingresa un valor numérico de glucosa.");
+      return;
+    }
+    if (!selectedPeriod) {
+      Alert.alert("Período requerido", "Selecciona el período de la medición.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await apiPost("/api/measurements/glucose", {
+        glucosa: glucosaValue,
+        periodo: PERIOD_TO_BACKEND[selectedPeriod],
+      });
+      router.back();
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo registrar la glucosa.";
+      Alert.alert("Error", message, [
+        { text: "Reintentar", onPress: handleSave },
+        { text: "Cancelar", style: "cancel" },
+      ]);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <ScreenContainer scrollable>
       <ScreenHeader showBackButton title="Glucosa" />
@@ -25,28 +71,38 @@ export default function GlucoseScreen() {
           placeholder="98"
           keyboardType="numeric"
           icon="glucosa"
+          value={glucosa}
+          onChangeText={setGlucosa}
         />
 
         <View style={styles.periodSection}>
-          {glucosePeriods.map((item, index) => (
-            <Pressable
-              key={item.period}
-              style={[styles.periodCard, index === 0 && styles.periodActive]}
-            >
-              <View style={styles.periodHeader}>
-                <IconImage
-                  name={index === 1 ? "insulina" : "glucosa"}
-                  size={22}
-                />
-                <Text style={styles.periodTitle}>{item.period}</Text>
-              </View>
-              <Text style={styles.periodDescription}>{item.description}</Text>
-            </Pressable>
-          ))}
+          {glucosePeriods.map((item, index) => {
+            const selected = item.period === selectedPeriod;
+            return (
+              <Pressable
+                key={item.period}
+                onPress={() => setSelectedPeriod(item.period)}
+                style={[styles.periodCard, selected && styles.periodActive]}
+              >
+                <View style={styles.periodHeader}>
+                  <IconImage
+                    name={index === 1 ? "insulina" : "glucosa"}
+                    size={22}
+                  />
+                  <Text style={styles.periodTitle}>{item.period}</Text>
+                </View>
+                <Text style={styles.periodDescription}>{item.description}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
-      <AppButton title="Guardar" onPress={() => {}} />
+      <AppButton
+        title={saving ? "Guardando..." : "Guardar"}
+        onPress={handleSave}
+        disabled={saving}
+      />
     </ScreenContainer>
   );
 }
