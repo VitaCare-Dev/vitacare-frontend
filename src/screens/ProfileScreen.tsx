@@ -1,6 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { signOut } from "firebase/auth";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
 import { auth } from "@/config/firebase";
@@ -9,7 +9,9 @@ import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
 /** Espejo de PatientDto del BFF. */
@@ -40,30 +42,30 @@ type DiseaseRecord = {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [patient, setPatient] = useState<PatientRecord | null>(null);
-  const [address, setAddress] = useState<AddressRecord | null>(null);
-  const [diseases, setDiseases] = useState<DiseaseRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      Promise.all([
-        apiGet<PatientRecord>("/api/patients/me"),
-        apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
-        apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
-      ])
-        .then(([patientData, addresses, diseaseList]) => {
-          setPatient(patientData);
-          setAddress(addresses[0] ?? null);
-          setDiseases(diseaseList);
-        })
-        .catch(() => {
-          setPatient(null);
-        })
-        .finally(() => setLoading(false));
-    }, [])
-  );
+  const patientQuery = useQuery({
+    queryKey: queryKeys.patientMe,
+    queryFn: () => apiGet<PatientRecord>("/api/patients/me"),
+    enabled,
+  });
+  const addressesQuery = useQuery({
+    queryKey: queryKeys.patientAddresses,
+    queryFn: () => apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
+    enabled,
+  });
+  const diseasesQuery = useQuery({
+    queryKey: queryKeys.patientDiseases,
+    queryFn: () => apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
+    enabled,
+  });
+
+  const loading =
+    patientQuery.isLoading || addressesQuery.isLoading || diseasesQuery.isLoading;
+  const patient = patientQuery.data ?? null;
+  const address = addressesQuery.data?.[0] ?? null;
+  const diseases = diseasesQuery.data ?? [];
 
   function handleLogout() {
     Alert.alert("Cerrar sesión", "¿Estás seguro que quieres salir?", [

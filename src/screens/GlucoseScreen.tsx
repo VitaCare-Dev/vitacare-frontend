@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -9,6 +10,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { glucosePeriods } from "@/data/mockData";
 import { ApiError, apiPost } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 import type { GlucosePeriod } from "@/types";
 
@@ -21,11 +23,29 @@ const PERIOD_TO_BACKEND: Record<GlucosePeriod, string> = {
 
 export default function GlucoseScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [glucosa, setGlucosa] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<GlucosePeriod | null>(null);
-  const [saving, setSaving] = useState(false);
 
-  async function handleSave() {
+  const saveMutation = useMutation({
+    mutationFn: (payload: { glucosa: number; periodo: string }) =>
+      apiPost("/api/measurements/glucose", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.latestGlucose });
+      router.back();
+    },
+    onError: (error) => {
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo registrar la glucosa.";
+      Alert.alert("Error", message, [
+        { text: "Reintentar", onPress: handleSave },
+        { text: "Cancelar", style: "cancel" },
+      ]);
+    },
+  });
+
+  function handleSave() {
     const glucosaValue = Number(glucosa);
     if (!glucosa.trim() || Number.isNaN(glucosaValue)) {
       Alert.alert("Valor inválido", "Ingresa un valor numérico de glucosa.");
@@ -36,23 +56,10 @@ export default function GlucoseScreen() {
       return;
     }
 
-    setSaving(true);
-    try {
-      await apiPost("/api/measurements/glucose", {
-        glucosa: glucosaValue,
-        periodo: PERIOD_TO_BACKEND[selectedPeriod],
-      });
-      router.back();
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo registrar la glucosa.";
-      Alert.alert("Error", message, [
-        { text: "Reintentar", onPress: handleSave },
-        { text: "Cancelar", style: "cancel" },
-      ]);
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate({
+      glucosa: glucosaValue,
+      periodo: PERIOD_TO_BACKEND[selectedPeriod],
+    });
   }
 
   return (
@@ -99,9 +106,9 @@ export default function GlucoseScreen() {
       </View>
 
       <AppButton
-        title={saving ? "Guardando..." : "Guardar"}
+        title={saveMutation.isPending ? "Guardando..." : "Guardar"}
         onPress={handleSave}
-        disabled={saving}
+        disabled={saveMutation.isPending}
       />
     </ScreenContainer>
   );

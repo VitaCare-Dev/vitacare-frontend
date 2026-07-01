@@ -1,12 +1,14 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { HealthCard } from "@/components/HealthCard";
 import { IconImage, IconName } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
 /** Espejo de PatientDto del BFF. */
@@ -59,37 +61,58 @@ function formatFrequency(frequencyHours: number): string {
   return `Cada ${frequencyHours} horas`;
 }
 
+/** Para los "latest" de mediciones, un 404 significa "todavía no hay dato", no un error real. */
+async function getLatestOrNull<T>(path: string): Promise<T | null> {
+  try {
+    return await apiGet<T>(path);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export default function HomeScreen() {
   const router = useRouter();
-  const [patientName, setPatientName] = useState<string | null>(null);
-  const [hasMeasurements, setHasMeasurements] = useState<boolean | null>(null);
-  const [latestGlucose, setLatestGlucose] = useState<GlucoseRecord | null>(null);
-  const [latestVitals, setLatestVitals] = useState<VitalsRecord | null>(null);
-  const [activeMedication, setActiveMedication] = useState<MedicationRecord | null>(null);
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
 
-  useFocusEffect(
-    useCallback(() => {
-      apiGet<PatientRecord>("/api/patients/me")
-        .then((patient) => setPatientName(patient.nombre))
-        .catch(() => setPatientName(null));
+  const patientQuery = useQuery({
+    queryKey: queryKeys.patientMe,
+    queryFn: () => apiGet<PatientRecord>("/api/patients/me"),
+    enabled,
+  });
 
-      apiGet<HealthControlRecord[]>("/api/measurements/history")
-        .then((history) => setHasMeasurements(history.length > 0))
-        .catch(() => setHasMeasurements(true));
+  const historyQuery = useQuery({
+    queryKey: queryKeys.measurementsHistory,
+    queryFn: () => apiGet<HealthControlRecord[]>("/api/measurements/history"),
+    enabled,
+  });
 
-      apiGet<GlucoseRecord>("/api/measurements/glucose/latest")
-        .then(setLatestGlucose)
-        .catch(() => setLatestGlucose(null));
+  const glucoseQuery = useQuery({
+    queryKey: queryKeys.latestGlucose,
+    queryFn: () => getLatestOrNull<GlucoseRecord>("/api/measurements/glucose/latest"),
+    enabled,
+  });
 
-      apiGet<VitalsRecord>("/api/measurements/vitals/latest")
-        .then(setLatestVitals)
-        .catch(() => setLatestVitals(null));
+  const vitalsQuery = useQuery({
+    queryKey: queryKeys.latestVitals,
+    queryFn: () => getLatestOrNull<VitalsRecord>("/api/measurements/vitals/latest"),
+    enabled,
+  });
 
-      apiGet<MedicationRecord[]>("/api/medications?active=true")
-        .then((medications) => setActiveMedication(medications[0] ?? null))
-        .catch(() => setActiveMedication(null));
-    }, [])
-  );
+  const activeMedicationQuery = useQuery({
+    queryKey: queryKeys.medicationsActive,
+    queryFn: () => apiGet<MedicationRecord[]>("/api/medications?active=true"),
+    enabled,
+  });
+
+  const patientName = patientQuery.data?.nombre ?? null;
+  const hasMeasurements = historyQuery.data ? historyQuery.data.length > 0 : null;
+  const latestGlucose = glucoseQuery.data ?? null;
+  const latestVitals = vitalsQuery.data ?? null;
+  const activeMedication = activeMedicationQuery.data?.[0] ?? null;
 
   const summaryCards: SummaryCard[] = [];
   if (latestVitals) {

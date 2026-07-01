@@ -1,11 +1,13 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
 /** Espejo de PatientDto del BFF. */
@@ -53,36 +55,49 @@ type MedicationRecord = {
 
 export default function MedicalInfoScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [patient, setPatient] = useState<PatientRecord | null>(null);
-  const [address, setAddress] = useState<AddressRecord | null>(null);
-  const [diseases, setDiseases] = useState<DiseaseRecord[]>([]);
-  const [thresholds, setThresholds] = useState<ThresholdRecord | null>(null);
-  const [medications, setMedications] = useState<MedicationRecord[]>([]);
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      Promise.all([
-        apiGet<PatientRecord>("/api/patients/me"),
-        apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
-        apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
-        apiGet<ThresholdRecord>("/api/patients/me/thresholds").catch((error) =>
-          error instanceof ApiError && error.status === 404 ? null : Promise.reject(error)
-        ),
-        apiGet<MedicationRecord[]>("/api/medications").catch(() => []),
-      ])
-        .then(([patientData, addresses, diseaseList, thresholdData, medicationList]) => {
-          setPatient(patientData);
-          setAddress(addresses[0] ?? null);
-          setDiseases(diseaseList);
-          setThresholds(thresholdData);
-          setMedications(medicationList);
-        })
-        .catch(() => setPatient(null))
-        .finally(() => setLoading(false));
-    }, [])
-  );
+  const patientQuery = useQuery({
+    queryKey: queryKeys.patientMe,
+    queryFn: () => apiGet<PatientRecord>("/api/patients/me"),
+    enabled,
+  });
+  const addressesQuery = useQuery({
+    queryKey: queryKeys.patientAddresses,
+    queryFn: () => apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
+    enabled,
+  });
+  const diseasesQuery = useQuery({
+    queryKey: queryKeys.patientDiseases,
+    queryFn: () => apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
+    enabled,
+  });
+  const thresholdsQuery = useQuery({
+    queryKey: queryKeys.patientThresholds,
+    queryFn: () =>
+      apiGet<ThresholdRecord>("/api/patients/me/thresholds").catch((error) =>
+        error instanceof ApiError && error.status === 404 ? null : Promise.reject(error)
+      ),
+    enabled,
+  });
+  const medicationsQuery = useQuery({
+    queryKey: queryKeys.medicationsAll,
+    queryFn: () => apiGet<MedicationRecord[]>("/api/medications").catch(() => []),
+    enabled,
+  });
+
+  const loading =
+    patientQuery.isLoading ||
+    addressesQuery.isLoading ||
+    diseasesQuery.isLoading ||
+    thresholdsQuery.isLoading ||
+    medicationsQuery.isLoading;
+  const patient = patientQuery.data ?? null;
+  const address = addressesQuery.data?.[0] ?? null;
+  const diseases = diseasesQuery.data ?? [];
+  const thresholds = thresholdsQuery.data ?? null;
+  const medications = medicationsQuery.data ?? [];
 
   const activeMedications = medications.filter((item) => item.activo === 1);
 
