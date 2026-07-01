@@ -8,6 +8,7 @@ import {
     TextInput,
     View,
 } from "react-native";
+import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
@@ -129,8 +130,8 @@ export default function PrestadoresScreen() {
   }, [comunas, prestadores, selectedRegion]);
 
   const renderBadge = (estado: Prestador["estadoValidacion"]) => {
-    let badgeStyle = styles.notFoundBadge;
-    let badgeTextStyle = styles.notFoundBadgeText;
+    let badgeStyle: StyleProp<ViewStyle> = styles.notFoundBadge;
+    let badgeTextStyle: StyleProp<TextStyle> = styles.notFoundBadgeText;
 
     if (estado === "Validado") {
       badgeStyle = styles.validatedBadge;

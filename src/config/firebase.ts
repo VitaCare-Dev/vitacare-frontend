@@ -1,4 +1,9 @@
 import { initializeApp } from "firebase/app";
+// El mapa de "exports" del paquete "firebase" no bifurca su campo "types" por
+// plataforma (a diferencia del JS, que sí carga la versión React Native en
+// runtime vía Metro), así que tsc siempre resuelve los tipos de la versión
+// web, donde este export no existe. Es una limitación conocida del paquete.
+// @ts-expect-error -- getReactNativePersistence sí existe en runtime (ver comentario arriba)
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
