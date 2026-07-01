@@ -27,6 +27,11 @@ interface ApiRequestOptions {
   body?: unknown;
 }
 
+/** fetch en React Native no tiene timeout por defecto: sin esto, una request
+ * que nunca resuelve (cold start, servicio caído, red mala) deja la pantalla
+ * cargando para siempre en vez de mostrar un error. */
+const REQUEST_TIMEOUT_MS = 15000;
+
 async function getAuthHeader(): Promise<Record<string, string>> {
   const user = auth.currentUser;
   if (!user) {
@@ -46,11 +51,25 @@ async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Pro
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(0, `Tiempo de espera agotado al llamar ${path}. Verifica tu conexión o intenta de nuevo.`);
+    }
+    throw new ApiError(0, `No se pudo conectar con el servidor al llamar ${path}.`);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (response.status === 204) {
     return undefined as T;
