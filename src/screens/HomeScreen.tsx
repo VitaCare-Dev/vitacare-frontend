@@ -1,17 +1,122 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { HealthCard } from "@/components/HealthCard";
-import { IconImage } from "@/components/IconImage";
+import { IconImage, IconName } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { summaryMeasurements } from "@/data/mockData";
-import { useNextTreatmentMedication } from "@/store/medicalStore";
+import { ApiError, apiGet } from "@/services/apiClient";
 import { VitaCareTheme } from "@/theme/theme";
+
+/** Espejo de PatientDto del BFF. */
+type PatientRecord = {
+  idPaciente: number;
+  nombre: string;
+};
+
+/** Espejo de HealthControlDto del BFF. */
+type HealthControlRecord = {
+  idControl: number;
+  idPaciente: number;
+  fechaHora: string;
+  notas: string | null;
+};
+
+/** Espejo de GlucoseDto del BFF. */
+type GlucoseRecord = {
+  glucosa: number;
+};
+
+/** Espejo de VitalsDto del BFF. */
+type VitalsRecord = {
+  presionSistolica: number | null;
+  presionDiastolica: number | null;
+  temperatura: number;
+  peso: number;
+};
+
+/** Espejo de MedicationDto del BFF. */
+type MedicationRecord = {
+  idMedicamento: number;
+  nombreMedicamento: string;
+  dosis: string;
+  frecuenciaHoras: number;
+  activo: number;
+};
+
+type SummaryCard = {
+  label: string;
+  value: string;
+  unit: string;
+  icon: IconName;
+};
+
+function formatFrequency(frequencyHours: number): string {
+  if (frequencyHours === 24) return "Una vez al día";
+  if (frequencyHours === 12) return "Cada 12 horas";
+  if (frequencyHours === 8) return "Cada 8 horas";
+  return `Cada ${frequencyHours} horas`;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
-  const nextMedication = useNextTreatmentMedication();
+  const [patientName, setPatientName] = useState<string | null>(null);
+  const [hasMeasurements, setHasMeasurements] = useState<boolean | null>(null);
+  const [latestGlucose, setLatestGlucose] = useState<GlucoseRecord | null>(null);
+  const [latestVitals, setLatestVitals] = useState<VitalsRecord | null>(null);
+  const [activeMedication, setActiveMedication] = useState<MedicationRecord | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      apiGet<PatientRecord>("/api/patients/me")
+        .then((patient) => setPatientName(patient.nombre))
+        .catch(() => setPatientName(null));
+
+      apiGet<HealthControlRecord[]>("/api/measurements/history")
+        .then((history) => setHasMeasurements(history.length > 0))
+        .catch(() => setHasMeasurements(true));
+
+      apiGet<GlucoseRecord>("/api/measurements/glucose/latest")
+        .then(setLatestGlucose)
+        .catch(() => setLatestGlucose(null));
+
+      apiGet<VitalsRecord>("/api/measurements/vitals/latest")
+        .then(setLatestVitals)
+        .catch(() => setLatestVitals(null));
+
+      apiGet<MedicationRecord[]>("/api/medications?active=true")
+        .then((medications) => setActiveMedication(medications[0] ?? null))
+        .catch(() => setActiveMedication(null));
+    }, [])
+  );
+
+  const summaryCards: SummaryCard[] = [];
+  if (latestVitals) {
+    if (latestVitals.presionSistolica != null && latestVitals.presionDiastolica != null) {
+      summaryCards.push({
+        label: "Presión arterial",
+        value: `${latestVitals.presionSistolica}/${latestVitals.presionDiastolica}`,
+        unit: "mmHg",
+        icon: "presion",
+      });
+    }
+    summaryCards.push({
+      label: "Temperatura",
+      value: String(latestVitals.temperatura),
+      unit: "°C",
+      icon: "temperatura",
+    });
+    summaryCards.push({ label: "Peso", value: String(latestVitals.peso), unit: "kg", icon: "peso" });
+  }
+  if (latestGlucose) {
+    summaryCards.push({
+      label: "Glucosa",
+      value: String(latestGlucose.glucosa),
+      unit: "mg/dL",
+      icon: "glucosa",
+    });
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -27,49 +132,60 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.greetingBlock}>
-        <Text style={styles.greeting}>¡Hola, María Carolina!</Text>
+        <Text style={styles.greeting}>¡Hola{patientName ? `, ${patientName}` : ""}!</Text>
         <Text style={styles.message}>Hoy es un buen día para cuidarte.</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumen de hoy</Text>
-        <View style={styles.grid}>
-          {summaryMeasurements.map((item) => (
-            <HealthCard
-              key={item.label}
-              label={item.label}
-              value={item.value}
-              unit={item.unit}
-              icon={item.icon}
-            />
-          ))}
+      {hasMeasurements === false ? (
+        <View style={styles.ctaCard}>
+          <IconImage name="glucosa" size={32} />
+          <Text style={styles.ctaTitle}>Aún no tienes mediciones registradas</Text>
+          <Text style={styles.ctaText}>
+            Registra tu primera medición para empezar a ver tu resumen aquí.
+          </Text>
+          <AppButton
+            title="Registrar mi primera medición"
+            onPress={() => router.push("/glucose")}
+          />
         </View>
-      </View>
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumen de hoy</Text>
+          {summaryCards.length > 0 ? (
+            <View style={styles.grid}>
+              {summaryCards.map((item) => (
+                <HealthCard
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  unit={item.unit}
+                  icon={item.icon}
+                />
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.message}>Aún no hay datos de este tipo registrados.</Text>
+          )}
+        </View>
+      )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Próxima toma de medicamento</Text>
+        <Text style={styles.sectionTitle}>Tratamiento activo</Text>
         <View style={styles.nextMedicationCard}>
           <View style={styles.nextMedicationHeader}>
             <IconImage name="medicamento" size={24} />
             <Text style={styles.nextMedicationTime}>
-              {nextMedication ? "Próximo control" : "Sin pendiente"}
+              {activeMedication ? "Medicamento activo" : "Sin pendiente"}
             </Text>
           </View>
           <Text style={styles.nextMedicationTitle}>
-            {nextMedication
-              ? nextMedication.name
-              : "No hay medicamentos activos"}
+            {activeMedication ? activeMedication.nombreMedicamento : "No hay medicamentos activos"}
           </Text>
           <Text style={styles.nextMedicationDetail}>
-            {nextMedication
-              ? nextMedication.frequency
+            {activeMedication
+              ? `${activeMedication.dosis} · ${formatFrequency(activeMedication.frecuenciaHoras)}`
               : "Agrega un tratamiento para verlo aquí."}
           </Text>
-          {nextMedication ? (
-            <Text style={styles.nextMedicationDetail}>
-              Estado: {nextMedication.takenToday ?? "Pendiente"}
-            </Text>
-          ) : null}
         </View>
       </View>
 
@@ -110,6 +226,29 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  ctaCard: {
+    alignItems: "center",
+    gap: VitaCareTheme.spacing.sm,
+    backgroundColor: VitaCareTheme.colors.surfaceSoft,
+    borderRadius: VitaCareTheme.radius.lg,
+    borderWidth: 1,
+    borderColor: VitaCareTheme.colors.border,
+    padding: VitaCareTheme.spacing.lg,
+    ...VitaCareTheme.shadow.card,
+  },
+  ctaTitle: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: VitaCareTheme.typography.subheading,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  ctaText: {
+    color: VitaCareTheme.colors.textMuted,
+    fontSize: VitaCareTheme.typography.body,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    textAlign: "center",
+  },
   headerRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
