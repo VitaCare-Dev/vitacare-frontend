@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { VitaCareTheme } from "@/theme/theme";
@@ -27,12 +33,18 @@ export function ScreenContainer({
 
   return (
     <SafeAreaView style={[styles.safeArea, style]}>
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, contentStyle]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {children}
-      </ScrollView>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, contentStyle]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -41,6 +53,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: VitaCareTheme.colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
