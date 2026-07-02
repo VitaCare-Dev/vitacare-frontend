@@ -17,14 +17,6 @@ export type VitalMeasurement = {
   icon: "presion" | "glucosa" | "peso" | "corazon" | "temperatura";
 };
 
-export type IntakeHistoryItem = {
-  id: string;
-  medication: string;
-  scheduledAt: string;
-  takenAt: string;
-  status: "Tomada" | "No tomada";
-};
-
 export type AlertItem = {
   id: string;
   type: "alert" | "recommendation";

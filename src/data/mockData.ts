@@ -2,7 +2,6 @@ import type {
     AlertItem,
     GlucosePeriod,
     HealthControlOption,
-    IntakeHistoryItem,
     Patient,
     Provider,
     VitalMeasurement,
@@ -23,30 +22,6 @@ export const summaryMeasurements: VitalMeasurement[] = [
   { label: "Temperatura", value: "36.6", unit: "°C", icon: "temperatura" },
   { label: "Peso", value: "65.2", unit: "kg", icon: "peso" },
   { label: "Glucosa", value: "98", unit: "mg/dL", icon: "glucosa" },
-];
-
-export const intakeHistory: IntakeHistoryItem[] = [
-  {
-    id: "i1",
-    medication: "Metformina 850 mg",
-    scheduledAt: "14/06/2026 08:00",
-    takenAt: "14/06/2026 08:05",
-    status: "Tomada",
-  },
-  {
-    id: "i2",
-    medication: "Metformina 850 mg",
-    scheduledAt: "14/06/2026 20:00",
-    takenAt: "14/06/2026 20:22",
-    status: "Tomada",
-  },
-  {
-    id: "i3",
-    medication: "Atorvastatina 20 mg",
-    scheduledAt: "14/06/2026 22:00",
-    takenAt: "--",
-    status: "No tomada",
-  },
 ];
 
 export const glucosePeriods: { period: GlucosePeriod; description: string }[] =
