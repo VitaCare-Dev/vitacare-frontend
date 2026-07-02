@@ -1,16 +1,60 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
-import { MedicationCard } from "@/components/MedicationCard";
+import { MedicationCard, type MedicationRecord } from "@/components/MedicationCard";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { useTreatmentMedications } from "@/store/medicalStore";
+import { useAuth } from "@/context/AuthContext";
+import { apiDelete, apiPatch, ApiError, apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
 export default function TreatmentScreen() {
   const router = useRouter();
-  const medications = useTreatmentMedications();
+  const queryClient = useQueryClient();
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
+
+  const medicationsQuery = useQuery({
+    queryKey: queryKeys.medicationsAll,
+    queryFn: () => apiGet<MedicationRecord[]>("/api/medications"),
+    enabled,
+  });
+  const medications = medicationsQuery.data ?? [];
+
+  function invalidateMedications() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.medicationsAll });
+    queryClient.invalidateQueries({ queryKey: queryKeys.medicationsActive });
+  }
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: number) => apiPatch(`/api/medications/${id}/deactivate`),
+    onSuccess: invalidateMedications,
+    onError: (error) => {
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo desactivar el medicamento.";
+      Alert.alert("Error", message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiDelete(`/api/medications/${id}`),
+    onSuccess: invalidateMedications,
+    onError: (error) => {
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo eliminar el medicamento.";
+      Alert.alert("Error", message);
+    },
+  });
+
+  function confirmDelete(id: number) {
+    Alert.alert("Eliminar medicamento", "Esta acción no se puede deshacer. ¿Continuar?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Eliminar", style: "destructive", onPress: () => deleteMutation.mutate(id) },
+    ]);
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -31,7 +75,12 @@ export default function TreatmentScreen() {
       <View style={styles.list}>
         {medications.length ? (
           medications.map((item) => (
-            <MedicationCard key={item.id} medication={item} />
+            <MedicationCard
+              key={item.idMedicamento}
+              medication={item}
+              onDeactivate={() => deactivateMutation.mutate(item.idMedicamento)}
+              onDelete={() => confirmDelete(item.idMedicamento)}
+            />
           ))
         ) : (
           <View style={styles.emptyCard}>

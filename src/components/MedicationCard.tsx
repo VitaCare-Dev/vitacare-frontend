@@ -1,14 +1,35 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
 import { VitaCareTheme } from "@/theme/theme";
-import type { Medication } from "@/types";
+
+/** Espejo de MedicationDto del BFF. */
+export type MedicationRecord = {
+  idMedicamento: number;
+  nombreMedicamento: string;
+  dosis: string;
+  frecuenciaHoras: number;
+  fechaInicio: string;
+  fechaTermino: string | null;
+  activo: number;
+};
 
 type MedicationCardProps = Readonly<{
-  medication: Medication;
+  medication: MedicationRecord;
+  onDeactivate?: () => void;
+  onDelete?: () => void;
 }>;
 
-export function MedicationCard({ medication }: MedicationCardProps) {
+function formatFrequency(frequencyHours: number): string {
+  if (frequencyHours === 24) return "Una vez al día";
+  if (frequencyHours === 12) return "Cada 12 horas";
+  if (frequencyHours === 8) return "Cada 8 horas";
+  return `Cada ${frequencyHours} horas`;
+}
+
+export function MedicationCard({ medication, onDeactivate, onDelete }: MedicationCardProps) {
+  const active = medication.activo === 1;
+
   return (
     <View style={styles.card}>
       <View style={styles.iconWrap}>
@@ -16,25 +37,30 @@ export function MedicationCard({ medication }: MedicationCardProps) {
       </View>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.name}>{medication.name}</Text>
-          <View
-            style={[
-              styles.badge,
-              medication.active ? styles.activeBadge : styles.inactiveBadge,
-            ]}
-          >
-            <Text style={styles.badgeText}>
-              {medication.active ? "Activo" : "Inactivo"}
-            </Text>
+          <Text style={styles.name}>{medication.nombreMedicamento}</Text>
+          <View style={[styles.badge, active ? styles.activeBadge : styles.inactiveBadge]}>
+            <Text style={styles.badgeText}>{active ? "Activo" : "Inactivo"}</Text>
           </View>
         </View>
-        <Text style={styles.detail}>{medication.dose}</Text>
-        <Text style={styles.detail}>{medication.frequency}</Text>
-        <Text style={styles.small}>Inicio: {medication.startDate}</Text>
-        <Text style={styles.small}>Término: {medication.endDate}</Text>
-        {medication.takenToday ? (
-          <Text style={styles.small}>Tomas hoy: {medication.takenToday}</Text>
-        ) : null}
+        <Text style={styles.detail}>{medication.dosis}</Text>
+        <Text style={styles.detail}>{formatFrequency(medication.frecuenciaHoras)}</Text>
+        <Text style={styles.small}>Inicio: {medication.fechaInicio}</Text>
+        <Text style={styles.small}>Término: {medication.fechaTermino ?? "Indefinido"}</Text>
+
+        {(onDeactivate || onDelete) && (
+          <View style={styles.actions}>
+            {active && onDeactivate ? (
+              <Pressable onPress={onDeactivate}>
+                <Text style={styles.actionText}>Desactivar</Text>
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable onPress={onDelete}>
+                <Text style={styles.actionTextDanger}>Eliminar</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -96,6 +122,23 @@ const styles = StyleSheet.create({
   badgeText: {
     color: VitaCareTheme.colors.secondary,
     fontSize: 11,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: VitaCareTheme.spacing.md,
+    paddingTop: VitaCareTheme.spacing.xs,
+  },
+  actionText: {
+    color: VitaCareTheme.colors.primary,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
+  },
+  actionTextDanger: {
+    color: "#B54444",
+    fontSize: VitaCareTheme.typography.small,
     fontFamily: VitaCareTheme.typography.fontFamily,
     fontWeight: "700",
   },
