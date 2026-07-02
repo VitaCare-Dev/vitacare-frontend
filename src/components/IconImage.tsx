@@ -6,6 +6,7 @@ export type IconName =
   | "capsulas"
   | "cara-decepcionada"
   | "cara-inexpresiva"
+  | "cerrar-ojo"
   | "chatbot"
   | "comida"
   | "corazon"
@@ -19,6 +20,7 @@ export type IconName =
   | "menu-puntos"
   | "nota"
   | "notificacion-de-campana-en-redes-sociales"
+  | "ojo"
   | "peso"
   | "plan"
   | "presion"
@@ -41,6 +43,8 @@ const greenIcons: Record<IconName, number> = {
   capsulas: require("../../assets/icon/iconos/verdes/capsulas.png"),
   "cara-decepcionada": require("../../assets/icon/iconos/verdes/cara-decepcionada.png"),
   "cara-inexpresiva": require("../../assets/icon/iconos/verdes/cara-inexpresiva.png"),
+  // Solo existe una variante de este ícono (carpeta "blancos", pero el arte en sí es negro).
+  "cerrar-ojo": require("../../assets/icon/iconos/blancos/cerrar-ojo.png"),
   chatbot: require("../../assets/icon/iconos/verdes/chatbot (1).png"),
   comida: require("../../assets/icon/iconos/verdes/comida.png"),
   corazon: require("../../assets/icon/iconos/verdes/corazon.png"),
@@ -54,6 +58,7 @@ const greenIcons: Record<IconName, number> = {
   "menu-puntos": require("../../assets/icon/iconos/verdes/menu-puntos.png"),
   nota: require("../../assets/icon/iconos/verdes/nota.png"),
   "notificacion-de-campana-en-redes-sociales": require("../../assets/icon/iconos/verdes/notificacion-de-campana-en-redes-sociales.png"),
+  ojo: require("../../assets/icon/iconos/blancos/ojo.png"),
   peso: require("../../assets/icon/iconos/verdes/peso.png"),
   plan: require("../../assets/icon/iconos/verdes/plan.png"),
   presion: require("../../assets/icon/iconos/verdes/presion.png"),
@@ -69,6 +74,7 @@ const whiteIcons: Record<IconName, number> = {
   capsulas: require("../../assets/icon/iconos/blancos/capsulas.png"),
   "cara-decepcionada": require("../../assets/icon/iconos/blancos/cara-decepcionada (1).png"),
   "cara-inexpresiva": require("../../assets/icon/iconos/blancos/cara-inexpresiva (1).png"),
+  "cerrar-ojo": require("../../assets/icon/iconos/blancos/cerrar-ojo.png"),
   chatbot: require("../../assets/icon/iconos/blancos/chatbot.png"),
   comida: require("../../assets/icon/iconos/blancos/comida.png"),
   corazon: require("../../assets/icon/iconos/blancos/corazon.png"),
@@ -82,6 +88,7 @@ const whiteIcons: Record<IconName, number> = {
   "menu-puntos": require("../../assets/icon/iconos/blancos/menu-puntos.png"),
   nota: require("../../assets/icon/iconos/blancos/nota.png"),
   "notificacion-de-campana-en-redes-sociales": require("../../assets/icon/iconos/blancos/notificacion-de-campana-en-redes-sociales.png"),
+  ojo: require("../../assets/icon/iconos/blancos/ojo.png"),
   peso: require("../../assets/icon/iconos/blancos/peso.png"),
   plan: require("../../assets/icon/iconos/blancos/plan.png"),
   presion: require("../../assets/icon/iconos/blancos/presion-arterial.png"),

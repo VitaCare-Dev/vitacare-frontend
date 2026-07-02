@@ -9,6 +9,7 @@ import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { AppPickerField } from "@/components/AppPickerField";
 import { BrandHeader } from "@/components/BrandHeader";
+import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { auth } from "@/config/firebase";
@@ -252,6 +253,12 @@ export default function RegisterScreen() {
               icon="medicamento"
               value={password}
               onChangeText={setPassword}
+              rightElement={
+                <PasswordVisibilityToggle
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((prev) => !prev)}
+                />
+              }
             />
             <AppInput
               label="Repetir contraseña"
@@ -260,12 +267,13 @@ export default function RegisterScreen() {
               icon="medicamento"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
+              rightElement={
+                <PasswordVisibilityToggle
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((prev) => !prev)}
+                />
+              }
             />
-            <Pressable onPress={() => setShowPassword((prev) => !prev)}>
-              <Text style={styles.link}>
-                {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              </Text>
-            </Pressable>
 
             <AppButton title="Siguiente" onPress={handleNextFromCredentials} />
           </>
@@ -413,12 +421,5 @@ const styles = StyleSheet.create({
   form: {
     gap: VitaCareTheme.spacing.md,
     paddingTop: VitaCareTheme.spacing.lg,
-  },
-  link: {
-    textAlign: "right",
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    fontWeight: "600",
   },
 });

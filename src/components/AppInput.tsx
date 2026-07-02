@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, type ReactNode } from "react";
 import {
     StyleSheet,
     Text,
@@ -14,11 +14,13 @@ type AppInputProps = Readonly<
   TextInputProps & {
     label: string;
     icon?: IconName;
+    /** Elemento pegado al borde derecho del input, dentro del mismo recuadro (ej. un botón "Mostrar contraseña"). */
+    rightElement?: ReactNode;
   }
 >;
 
 export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
-  { label, icon, style, ...props },
+  { label, icon, rightElement, style, ...props },
   ref,
 ) {
   return (
@@ -32,6 +34,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
           placeholderTextColor="#A39F9A"
           {...props}
         />
+        {rightElement}
       </View>
     </View>
   );

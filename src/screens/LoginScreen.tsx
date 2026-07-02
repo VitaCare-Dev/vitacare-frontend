@@ -6,6 +6,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { BrandHeader } from "@/components/BrandHeader";
+import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { auth } from "@/config/firebase";
 import { VitaCareTheme } from "@/theme/theme";
@@ -14,6 +15,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -64,10 +66,16 @@ export default function LoginScreen() {
         <AppInput
           label="Contraseña"
           placeholder="••••••••"
-          secureTextEntry
+          secureTextEntry={!showPassword}
           icon="medicamento"
           value={password}
           onChangeText={setPassword}
+          rightElement={
+            <PasswordVisibilityToggle
+              visible={showPassword}
+              onToggle={() => setShowPassword((prev) => !prev)}
+            />
+          }
         />
 
         <AppButton
