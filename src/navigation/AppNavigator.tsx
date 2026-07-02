@@ -43,6 +43,7 @@ export function AppNavigator() {
       <Stack.Screen name="alerts-recommendations" />
       <Stack.Screen name="add-medication" />
       <Stack.Screen name="cholesterol" />
+      <Stack.Screen name="edit-address" />
       <Stack.Screen name="glucose" />
       <Stack.Screen name="measurement-detail" />
       <Stack.Screen name="medical-info" />

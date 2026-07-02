@@ -28,6 +28,7 @@ type PatientRecord = {
 
 /** Espejo de AddressDto del BFF. */
 type AddressRecord = {
+  idDireccion: number;
   calle: string;
   numero: string;
   comuna: string;
@@ -110,6 +111,11 @@ export default function ProfileScreen() {
               ? `${address.calle} ${address.numero}, ${address.comuna}, ${address.region}`
               : "Sin dirección registrada"
           }
+        />
+        <AppButton
+          title={address ? "Editar dirección" : "Agregar dirección"}
+          variant="outline"
+          onPress={() => router.push("/edit-address")}
         />
         <View style={styles.diseaseBlock}>
           <Text style={styles.blockTitle}>Enfermedades asociadas</Text>
