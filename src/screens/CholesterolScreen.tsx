@@ -33,6 +33,7 @@ export default function CholesterolScreen() {
     mutationFn: (payload: LipidsPayload) => apiPost("/api/measurements/lipids", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.lipidsList });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestLipids });
       setCholesterolTotal("");
       setLdl("");
