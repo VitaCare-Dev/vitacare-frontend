@@ -1,18 +1,23 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { IconImage, type IconName } from "@/components/IconImage";
 import { VitaCareTheme } from "@/theme/theme";
 
 type ScreenHeaderProps = Readonly<{
   title?: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
+  rightIcon?: IconName;
+  onRightPress?: () => void;
 }>;
 
 export function ScreenHeader({
   title,
   showBackButton = false,
   onBackPress,
+  rightIcon,
+  onRightPress,
 }: ScreenHeaderProps) {
   const router = useRouter();
 
@@ -24,7 +29,7 @@ export function ScreenHeader({
     }
   };
 
-  if (!showBackButton && !title) {
+  if (!showBackButton && !title && !rightIcon) {
     return null;
   }
 
@@ -40,7 +45,13 @@ export function ScreenHeader({
 
       {title && <Text style={styles.title}>{title}</Text>}
 
-      <View style={styles.spacer} />
+      {rightIcon ? (
+        <Pressable onPress={onRightPress} style={styles.rightButton}>
+          <IconImage name={rightIcon} size={24} />
+        </Pressable>
+      ) : (
+        <View style={styles.spacer} />
+      )}
     </View>
   );
 }
@@ -65,6 +76,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: VitaCareTheme.colors.primary,
     fontWeight: "600",
+  },
+  rightButton: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     color: VitaCareTheme.colors.secondary,

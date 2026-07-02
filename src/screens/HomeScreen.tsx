@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { HealthCard } from "@/components/HealthCard";
@@ -82,6 +92,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = windowWidth - VitaCareTheme.spacing.lg * 2;
+  const [activeMedicationPage, setActiveMedicationPage] = useState(0);
 
   const patientQuery = useQuery({
     queryKey: queryKeys.patientMe,
@@ -124,7 +137,12 @@ export default function HomeScreen() {
   const latestGlucose = glucoseQuery.data ?? null;
   const latestVitals = vitalsQuery.data ?? null;
   const latestLipids = lipidsQuery.data ?? null;
-  const activeMedication = activeMedicationQuery.data?.[0] ?? null;
+  const activeMedications = activeMedicationQuery.data ?? [];
+
+  function handleActiveMedicationScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const page = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
+    setActiveMedicationPage(page);
+  }
 
   const summaryCards: SummaryCard[] = [];
   if (latestVitals) {
@@ -214,22 +232,60 @@ export default function HomeScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tratamiento activo</Text>
-        <View style={styles.nextMedicationCard}>
-          <View style={styles.nextMedicationHeader}>
-            <IconImage name="medicamento" size={24} />
-            <Text style={styles.nextMedicationTime}>
-              {activeMedication ? "Medicamento activo" : "Sin pendiente"}
+        {activeMedications.length > 1 ? (
+          <>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleActiveMedicationScroll}
+              style={[{ width: cardWidth }, styles.carouselScroll]}
+              contentContainerStyle={styles.carouselContent}
+            >
+              {activeMedications.map((medication) => (
+                <Pressable
+                  key={medication.idMedicamento}
+                  style={[styles.nextMedicationCard, { width: cardWidth }]}
+                  onPress={() => router.push("/treatment")}
+                >
+                  <View style={styles.nextMedicationHeader}>
+                    <IconImage name="medicamento" size={24} />
+                    <Text style={styles.nextMedicationTime}>Medicamento activo</Text>
+                  </View>
+                  <Text style={styles.nextMedicationTitle}>{medication.nombreMedicamento}</Text>
+                  <Text style={styles.nextMedicationDetail}>
+                    {medication.dosis} · {formatFrequency(medication.frecuenciaHoras)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={styles.dotsRow}>
+              {activeMedications.map((medication, index) => (
+                <View
+                  key={medication.idMedicamento}
+                  style={[styles.dot, index === activeMedicationPage && styles.dotActive]}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <Pressable style={styles.nextMedicationCard} onPress={() => router.push("/treatment")}>
+            <View style={styles.nextMedicationHeader}>
+              <IconImage name="medicamento" size={24} />
+              <Text style={styles.nextMedicationTime}>
+                {activeMedications[0] ? "Medicamento activo" : "Sin pendiente"}
+              </Text>
+            </View>
+            <Text style={styles.nextMedicationTitle}>
+              {activeMedications[0]?.nombreMedicamento ?? "No hay medicamentos activos"}
             </Text>
-          </View>
-          <Text style={styles.nextMedicationTitle}>
-            {activeMedication ? activeMedication.nombreMedicamento : "No hay medicamentos activos"}
-          </Text>
-          <Text style={styles.nextMedicationDetail}>
-            {activeMedication
-              ? `${activeMedication.dosis} · ${formatFrequency(activeMedication.frecuenciaHoras)}`
-              : "Agrega un tratamiento para verlo aquí."}
-          </Text>
-        </View>
+            <Text style={styles.nextMedicationDetail}>
+              {activeMedications[0]
+                ? `${activeMedications[0].dosis} · ${formatFrequency(activeMedications[0].frecuenciaHoras)}`
+                : "Toca para agregar un tratamiento."}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -356,8 +412,29 @@ const styles = StyleSheet.create({
   },
   nextMedicationHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: VitaCareTheme.spacing.sm,
+  },
+  carouselScroll: {
+    marginVertical: -VitaCareTheme.spacing.lg,
+  },
+  carouselContent: {
+    paddingVertical: VitaCareTheme.spacing.lg,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: VitaCareTheme.spacing.xs,
+    paddingTop: VitaCareTheme.spacing.sm,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: VitaCareTheme.colors.border,
+  },
+  dotActive: {
+    backgroundColor: VitaCareTheme.colors.primary,
   },
   nextMedicationTime: {
     color: VitaCareTheme.colors.primary,

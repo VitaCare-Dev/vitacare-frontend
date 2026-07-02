@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { AppButton } from "@/components/AppButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -54,7 +52,6 @@ type MedicationRecord = {
 };
 
 export default function MedicalInfoScreen() {
-  const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
 
@@ -187,12 +184,6 @@ export default function MedicalInfoScreen() {
           <InfoRow label="Total registrados" value={String(medications.length)} />
         </InfoCard>
       </View>
-
-      <AppButton
-        title="Ir a tratamiento"
-        icon="medicamento"
-        onPress={() => router.push("/treatment")}
-      />
     </ScreenContainer>
   );
 }

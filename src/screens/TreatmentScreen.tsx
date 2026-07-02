@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
-import { AppButton } from "@/components/AppButton";
 import { MedicationCard, type MedicationRecord } from "@/components/MedicationCard";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -58,19 +57,18 @@ export default function TreatmentScreen() {
 
   return (
     <ScreenContainer scrollable>
-      <ScreenHeader showBackButton title="Tratamiento" />
+      <ScreenHeader
+        showBackButton
+        title="Tratamiento"
+        rightIcon="agregar"
+        onRightPress={() => router.push("/add-medication")}
+      />
       <View style={styles.header}>
         <Text style={styles.title}>Tratamiento</Text>
         <Text style={styles.subtitle}>
           Listado de medicamentos activos y su seguimiento.
         </Text>
       </View>
-
-      <AppButton
-        title="Agregar medicamento"
-        icon="agregar"
-        onPress={() => router.push("/add-medication")}
-      />
 
       <View style={styles.list}>
         {medications.length ? (
