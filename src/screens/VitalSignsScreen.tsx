@@ -26,17 +26,20 @@ export default function VitalSignsScreen() {
   const [diastolica, setDiastolica] = useState("");
   const [temperatura, setTemperatura] = useState("");
   const [peso, setPeso] = useState("");
+  const [notas, setNotas] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: (payload: VitalsPayload) => apiPost("/api/measurements/vitals", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vitalsList });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestVitals });
       setSistolica("");
       setDiastolica("");
       setTemperatura("");
       setPeso("");
+      setNotas("");
       setErrorMessage("");
       Alert.alert("Registro guardado", "Tus signos vitales se guardaron correctamente.", [
         { text: "Aceptar", onPress: () => router.back() },
@@ -71,12 +74,17 @@ export default function VitalSignsScreen() {
         presionDiastolica: diastolicaValue,
         temperatura: temperaturaValue,
         peso: pesoValue,
+        notas: notas.trim() || undefined,
       });
       return;
     }
 
     setErrorMessage("");
-    saveMutation.mutate({ temperatura: temperaturaValue, peso: pesoValue });
+    saveMutation.mutate({
+      temperatura: temperaturaValue,
+      peso: pesoValue,
+      notas: notas.trim() || undefined,
+    });
   };
 
   return (
@@ -127,6 +135,15 @@ export default function VitalSignsScreen() {
           icon="peso"
           value={peso}
           onChangeText={setPeso}
+        />
+        <AppInput
+          label="Notas (opcional)"
+          placeholder="Agrega una observación breve"
+          icon="nota"
+          value={notas}
+          onChangeText={setNotas}
+          multiline
+          numberOfLines={3}
         />
       </View>
 

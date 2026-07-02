@@ -1,8 +1,6 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppButton } from "@/components/AppButton";
-import { AppInput } from "@/components/AppInput";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -39,20 +37,6 @@ export default function HealthControlScreen() {
       </View>
 
       <View style={styles.formCard}>
-        <View style={styles.dateRow}>
-          <IconImage name="nota" size={22} />
-          <Text style={styles.dateText}>15-06-2026</Text>
-        </View>
-
-        <AppInput label="Fecha" placeholder="15-06-2026" icon="nota" />
-        <AppInput label="Hora" placeholder="08:00" icon="corazon" />
-        <AppInput
-          label="Notas"
-          placeholder="Agrega una observación breve"
-          multiline
-          numberOfLines={4}
-        />
-
         <View style={styles.optionsSection}>
           {healthControlOptions.map((option) => (
             <Pressable
@@ -71,8 +55,6 @@ export default function HealthControlScreen() {
           ))}
         </View>
       </View>
-
-      <AppButton title="Guardar control" onPress={() => {}} />
     </ScreenContainer>
   );
 }
@@ -100,17 +82,6 @@ const styles = StyleSheet.create({
     padding: VitaCareTheme.spacing.md,
     gap: VitaCareTheme.spacing.md,
     ...VitaCareTheme.shadow.card,
-  },
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
-  },
-  dateText: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    fontWeight: "800",
   },
   optionsSection: {
     gap: VitaCareTheme.spacing.sm,

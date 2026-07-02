@@ -26,12 +26,14 @@ export default function GlucoseScreen() {
   const queryClient = useQueryClient();
   const [glucosa, setGlucosa] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<GlucosePeriod | null>(null);
+  const [notas, setNotas] = useState("");
 
   const saveMutation = useMutation({
-    mutationFn: (payload: { glucosa: number; periodo: string }) =>
+    mutationFn: (payload: { glucosa: number; periodo: string; notas?: string }) =>
       apiPost("/api/measurements/glucose", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.glucoseList });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestGlucose });
       Alert.alert("Registro guardado", "Tu medición de glucosa se guardó correctamente.", [
         { text: "Aceptar", onPress: () => router.back() },
@@ -61,6 +63,7 @@ export default function GlucoseScreen() {
     saveMutation.mutate({
       glucosa: glucosaValue,
       periodo: PERIOD_TO_BACKEND[selectedPeriod],
+      notas: notas.trim() || undefined,
     });
   }
 
@@ -105,6 +108,16 @@ export default function GlucoseScreen() {
             );
           })}
         </View>
+
+        <AppInput
+          label="Notas (opcional)"
+          placeholder="Agrega una observación breve"
+          icon="nota"
+          value={notas}
+          onChangeText={setNotas}
+          multiline
+          numberOfLines={3}
+        />
       </View>
 
       <AppButton
