@@ -17,41 +17,12 @@ export type VitalMeasurement = {
   icon: "presion" | "glucosa" | "peso" | "corazon" | "temperatura";
 };
 
-export type Medication = {
-  id: string;
-  name: string;
-  dose: string;
-  frequency: string;
-  startDate: string;
-  endDate: string;
-  active: boolean;
-  takenToday?: string;
-};
-
-export type ControlHistoryItem = {
-  id: string;
-  date: string;
-  time: string;
-  bloodPressure: string;
-  temperature: string;
-  weight: string;
-  glucose: string;
-  notes: string;
-};
-
 export type IntakeHistoryItem = {
   id: string;
   medication: string;
   scheduledAt: string;
   takenAt: string;
   status: "Tomada" | "No tomada";
-};
-
-export type ChatMessage = {
-  id: string;
-  sender: "user" | "assistant";
-  text: string;
-  time: string;
 };
 
 export type AlertItem = {

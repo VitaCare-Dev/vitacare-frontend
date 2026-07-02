@@ -1,11 +1,8 @@
 import type {
     AlertItem,
-    ChatMessage,
-    ControlHistoryItem,
     GlucosePeriod,
     HealthControlOption,
     IntakeHistoryItem,
-    Medication,
     Patient,
     Provider,
     VitalMeasurement,
@@ -26,62 +23,6 @@ export const summaryMeasurements: VitalMeasurement[] = [
   { label: "Temperatura", value: "36.6", unit: "°C", icon: "temperatura" },
   { label: "Peso", value: "65.2", unit: "kg", icon: "peso" },
   { label: "Glucosa", value: "98", unit: "mg/dL", icon: "glucosa" },
-];
-
-export const medications: Medication[] = [
-  {
-    id: "1",
-    name: "Metformina 850 mg",
-    dose: "850 mg",
-    frequency: "Cada 12 horas",
-    startDate: "01/04/2026",
-    endDate: "Indefinido",
-    active: true,
-    takenToday: "1/2",
-  },
-  {
-    id: "2",
-    name: "Losartán 50 mg",
-    dose: "50 mg",
-    frequency: "Una vez al día",
-    startDate: "10/03/2026",
-    endDate: "Indefinido",
-    active: true,
-    takenToday: "1/1",
-  },
-  {
-    id: "3",
-    name: "Atorvastatina 20 mg",
-    dose: "20 mg",
-    frequency: "Una vez al día",
-    startDate: "18/02/2026",
-    endDate: "Indefinido",
-    active: false,
-    takenToday: "0/1",
-  },
-];
-
-export const history: ControlHistoryItem[] = [
-  {
-    id: "h1",
-    date: "14/06/2026",
-    time: "08:15",
-    bloodPressure: "140/65",
-    temperature: "36.5",
-    weight: "65.1",
-    glucose: "110",
-    notes: "Se registró presión elevada por la mañana.",
-  },
-  {
-    id: "h2",
-    date: "13/06/2026",
-    time: "20:30",
-    bloodPressure: "143/67",
-    temperature: "36.0",
-    weight: "65.3",
-    glucose: "98",
-    notes: "Paciente refiere buena adherencia a medicamentos.",
-  },
 ];
 
 export const intakeHistory: IntakeHistoryItem[] = [
@@ -184,39 +125,6 @@ export const alerts: AlertItem[] = [
     date: "12/06/2026",
     detail: "Avena, fruta y frutos secos ayudan al control glucémico.",
     status: "No leída",
-  },
-];
-
-export const messages: ChatMessage[] = [
-  {
-    id: "m1",
-    sender: "assistant",
-    text: "Hola María. Soy tu asistente virtual de salud. ¿Cómo puedo ayudarte hoy?",
-    time: "08:30",
-  },
-  {
-    id: "m2",
-    sender: "user",
-    text: "He tenido dolores de cabeza y mareos últimamente.",
-    time: "08:31",
-  },
-  {
-    id: "m3",
-    sender: "assistant",
-    text: "Entiendo. ¿Desde cuándo notas estos síntomas? También revisa tu presión y glucosa si puedes.",
-    time: "08:32",
-  },
-  {
-    id: "m4",
-    sender: "user",
-    text: "Mi presión fue de 140/65 en la mañana.",
-    time: "08:33",
-  },
-  {
-    id: "m5",
-    sender: "assistant",
-    text: "Gracias por el dato. Regístralo en tus controles y mantente atenta a nuevos síntomas.",
-    time: "08:34",
   },
 ];
 
