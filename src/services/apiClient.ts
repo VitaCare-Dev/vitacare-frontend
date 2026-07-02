@@ -25,6 +25,7 @@ type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 interface ApiRequestOptions {
   method?: HttpMethod;
   body?: unknown;
+  timeoutMs?: number;
 }
 
 /** fetch en React Native no tiene timeout por defecto: sin esto, una request
@@ -42,7 +43,7 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 }
 
 async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { method = "GET", body } = options;
+  const { method = "GET", body, timeoutMs = REQUEST_TIMEOUT_MS } = options;
 
   const headers: Record<string, string> = {
     ...(await getAuthHeader()),
@@ -52,7 +53,7 @@ async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Pro
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   let response: Response;
   try {
@@ -94,8 +95,8 @@ export function apiGet<T>(path: string): Promise<T> {
   return apiRequest<T>(path);
 }
 
-export function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  return apiRequest<T>(path, { method: "POST", body });
+export function apiPost<T>(path: string, body?: unknown, timeoutMs?: number): Promise<T> {
+  return apiRequest<T>(path, { method: "POST", body, timeoutMs });
 }
 
 export function apiPut<T>(path: string, body?: unknown): Promise<T> {
