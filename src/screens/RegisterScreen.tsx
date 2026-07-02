@@ -222,7 +222,7 @@ export default function RegisterScreen() {
   return (
     <ScreenContainer scrollable>
       <ScreenHeader showBackButton title="Registrarse" />
-      <BrandHeader logoStyle="horizontal" />
+      <BrandHeader logoStyle="vertical" />
       <View style={styles.header}>
         <Text style={styles.title}>
           {isCompletingProfile ? "Completa tu perfil" : "Crear cuenta"}
