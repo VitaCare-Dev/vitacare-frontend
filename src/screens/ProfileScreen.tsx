@@ -112,11 +112,6 @@ export default function ProfileScreen() {
               : "Sin dirección registrada"
           }
         />
-        <AppButton
-          title={address ? "Editar dirección" : "Agregar dirección"}
-          variant="outline"
-          onPress={() => router.push("/edit-address")}
-        />
         <View style={styles.diseaseBlock}>
           <Text style={styles.blockTitle}>Enfermedades asociadas</Text>
           {diseases.length > 0 ? (

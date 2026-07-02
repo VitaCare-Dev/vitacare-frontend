@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
+import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +54,7 @@ type MedicationRecord = {
 };
 
 export default function MedicalInfoScreen() {
+  const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
 
@@ -112,7 +115,17 @@ export default function MedicalInfoScreen() {
       <ScreenHeader showBackButton title="Información médica" />
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Paciente</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Paciente</Text>
+          <Pressable
+            style={styles.editButton}
+            onPress={() => router.push("/edit-profile")}
+            hitSlop={8}
+          >
+            <IconImage name="editar" size={18} />
+            <Text style={styles.editButtonText}>Editar</Text>
+          </Pressable>
+        </View>
         <InfoCard>
           <InfoRow label="Paciente ID" value={String(patient?.idPaciente ?? "-")} />
           <InfoRow label="Usuario ID" value={String(patient?.idUsuario ?? "-")} />
@@ -130,7 +143,17 @@ export default function MedicalInfoScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contacto y dirección</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Contacto y dirección</Text>
+          <Pressable
+            style={styles.editButton}
+            onPress={() => router.push("/edit-address")}
+            hitSlop={8}
+          >
+            <IconImage name="editar" size={18} />
+            <Text style={styles.editButtonText}>{address ? "Editar" : "Agregar"}</Text>
+          </Pressable>
+        </View>
         <InfoCard>
           <InfoRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
           <InfoRow
@@ -213,6 +236,22 @@ const styles = StyleSheet.create({
     fontSize: VitaCareTheme.typography.subheading,
     fontFamily: VitaCareTheme.typography.fontFamily,
     fontWeight: "800",
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: VitaCareTheme.spacing.xs,
+  },
+  editButtonText: {
+    color: VitaCareTheme.colors.primary,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
   },
   card: {
     backgroundColor: VitaCareTheme.colors.surface,

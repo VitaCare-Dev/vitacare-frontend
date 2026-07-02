@@ -10,6 +10,7 @@ export type IconName =
   | "chatbot"
   | "comida"
   | "corazon"
+  | "editar"
   | "glucosa"
   | "haz-de-sonrisa"
   | "home"
@@ -48,6 +49,7 @@ const greenIcons: Record<IconName, number> = {
   chatbot: require("../../assets/icon/iconos/verdes/chatbot (1).png"),
   comida: require("../../assets/icon/iconos/verdes/comida.png"),
   corazon: require("../../assets/icon/iconos/verdes/corazon.png"),
+  editar: require("../../assets/icon/iconos/verdes/editarverde.png"),
   glucosa: require("../../assets/icon/iconos/verdes/glucosa.png"),
   "haz-de-sonrisa": require("../../assets/icon/iconos/verdes/haz-de-sonrisa (1).png"),
   home: require("../../assets/icon/iconos/verdes/home.png"),
@@ -78,6 +80,7 @@ const whiteIcons: Record<IconName, number> = {
   chatbot: require("../../assets/icon/iconos/blancos/chatbot.png"),
   comida: require("../../assets/icon/iconos/blancos/comida.png"),
   corazon: require("../../assets/icon/iconos/blancos/corazon.png"),
+  editar: require("../../assets/icon/iconos/blancos/editarblanco.png"),
   glucosa: require("../../assets/icon/iconos/blancos/glucosa.png"),
   "haz-de-sonrisa": require("../../assets/icon/iconos/blancos/haz-de-sonrisa.png"),
   home: require("../../assets/icon/iconos/blancos/home.png"),
