@@ -1,13 +1,90 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { history } from "@/data/mockData";
+import { useAuth } from "@/context/AuthContext";
+import { apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
-const filters = ["Todos", "Presión", "Glucosa", "Peso"] as const;
+/** Campos comunes a los 4 DTOs de medición del BFF. */
+type MeasurementBase = {
+  idControl: number;
+  fechaHora: string;
+  notas: string | null;
+};
+
+type GlucoseRecord = MeasurementBase & { glucosa: number };
+type LipidsRecord = MeasurementBase & {
+  colesterolTotal: number;
+  colesterolLDL: number;
+  colesterolHDL: number;
+  trigliceridos: number;
+};
+type VitalsRecord = MeasurementBase & {
+  presionSistolica: number | null;
+  presionDiastolica: number | null;
+  temperatura: number;
+  peso: number;
+};
+
+/** Un control de salud con todas las mediciones registradas en ese momento (glucosa/lípidos/vitales combinados por idControl). */
+type HistoryEntry = MeasurementBase & {
+  glucose?: GlucoseRecord;
+  lipids?: LipidsRecord;
+  vitals?: VitalsRecord;
+};
+
+function formatDate(fechaHora: string): string {
+  return new Date(fechaHora).toLocaleDateString("es-CL");
+}
+
+function formatTime(fechaHora: string): string {
+  return new Date(fechaHora).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function HistoryScreen() {
+  const router = useRouter();
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
+
+  const glucoseQuery = useQuery({
+    queryKey: queryKeys.glucoseList,
+    queryFn: () => apiGet<GlucoseRecord[]>("/api/measurements/glucose"),
+    enabled,
+  });
+  const lipidsQuery = useQuery({
+    queryKey: queryKeys.lipidsList,
+    queryFn: () => apiGet<LipidsRecord[]>("/api/measurements/lipids"),
+    enabled,
+  });
+  const vitalsQuery = useQuery({
+    queryKey: queryKeys.vitalsList,
+    queryFn: () => apiGet<VitalsRecord[]>("/api/measurements/vitals"),
+    enabled,
+  });
+
+  const loading = glucoseQuery.isLoading || lipidsQuery.isLoading || vitalsQuery.isLoading;
+
+  const entriesByControl = new Map<number, HistoryEntry>();
+  function upsert(base: MeasurementBase, patch: Partial<HistoryEntry>) {
+    const existing = entriesByControl.get(base.idControl);
+    entriesByControl.set(base.idControl, {
+      ...base,
+      ...existing,
+      ...patch,
+    });
+  }
+  (glucoseQuery.data ?? []).forEach((item) => upsert(item, { glucose: item }));
+  (lipidsQuery.data ?? []).forEach((item) => upsert(item, { lipids: item }));
+  (vitalsQuery.data ?? []).forEach((item) => upsert(item, { vitals: item }));
+
+  const entries = Array.from(entriesByControl.values()).sort(
+    (a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
+  );
+
   return (
     <ScreenContainer scrollable>
       <View style={styles.header}>
@@ -15,58 +92,81 @@ export default function HistoryScreen() {
         <Text style={styles.subtitle}>Resumen de controles recientes.</Text>
       </View>
 
-      <View style={styles.filtersRow}>
-        {filters.map((filter, index) => (
-          <View
-            key={filter}
-            style={[styles.filterChip, index === 0 && styles.filterActive]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                index === 0 && styles.filterTextActive,
-              ]}
+      {loading ? (
+        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+      ) : entries.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Aún no tienes controles registrados</Text>
+          <Text style={styles.emptyText}>
+            Registra una medición (glucosa, colesterol o signos vitales) para verla aquí.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {entries.map((entry) => (
+            <Pressable
+              key={entry.idControl}
+              style={styles.card}
+              onPress={() =>
+                router.push({
+                  pathname: "/measurement-detail",
+                  params: { idControl: String(entry.idControl) },
+                })
+              }
             >
-              {filter}
-            </Text>
-          </View>
-        ))}
-      </View>
+              <View style={styles.cardHeader}>
+                <Text style={styles.date}>{formatDate(entry.fechaHora)}</Text>
+                <Text style={styles.time}>{formatTime(entry.fechaHora)}</Text>
+              </View>
 
-      <View style={styles.list}>
-        {history.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.date}>{item.date}</Text>
-              <Text style={styles.time}>{item.time}</Text>
-            </View>
-            <View style={styles.metricRow}>
-              <IconImage name="presion" size={20} />
-              <Text style={styles.metricLabel}>Presión arterial</Text>
-              <Text style={styles.metricValue}>{item.bloodPressure}</Text>
-            </View>
-            <View style={styles.metricRow}>
-              <IconImage name="corazon" size={20} />
-              <Text style={styles.metricLabel}>Temperatura</Text>
-              <Text style={styles.metricValue}>{item.temperature}</Text>
-            </View>
-            <View style={styles.metricRow}>
-              <IconImage name="peso" size={20} />
-              <Text style={styles.metricLabel}>Peso</Text>
-              <Text style={styles.metricValue}>{item.weight}</Text>
-            </View>
-            <View style={styles.metricRow}>
-              <IconImage name="glucosa" size={20} />
-              <Text style={styles.metricLabel}>Glucosa</Text>
-              <Text style={styles.metricValue}>{item.glucose}</Text>
-            </View>
-            <View style={styles.noteBlock}>
-              <IconImage name="nota" size={18} />
-              <Text style={styles.noteText}>{item.notes}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+              {entry.vitals?.presionSistolica != null && entry.vitals?.presionDiastolica != null && (
+                <View style={styles.metricRow}>
+                  <IconImage name="presion" size={20} />
+                  <Text style={styles.metricLabel}>Presión arterial</Text>
+                  <Text style={styles.metricValue}>
+                    {entry.vitals.presionSistolica}/{entry.vitals.presionDiastolica} mmHg
+                  </Text>
+                </View>
+              )}
+              {entry.vitals && (
+                <>
+                  <View style={styles.metricRow}>
+                    <IconImage name="temperatura" size={20} />
+                    <Text style={styles.metricLabel}>Temperatura</Text>
+                    <Text style={styles.metricValue}>{entry.vitals.temperatura} °C</Text>
+                  </View>
+                  <View style={styles.metricRow}>
+                    <IconImage name="peso" size={20} />
+                    <Text style={styles.metricLabel}>Peso</Text>
+                    <Text style={styles.metricValue}>{entry.vitals.peso} kg</Text>
+                  </View>
+                </>
+              )}
+              {entry.glucose && (
+                <View style={styles.metricRow}>
+                  <IconImage name="glucosa" size={20} />
+                  <Text style={styles.metricLabel}>Glucosa</Text>
+                  <Text style={styles.metricValue}>{entry.glucose.glucosa} mg/dL</Text>
+                </View>
+              )}
+              {entry.lipids && (
+                <View style={styles.metricRow}>
+                  <IconImage name="corazon" size={20} />
+                  <Text style={styles.metricLabel}>Colesterol total</Text>
+                  <Text style={styles.metricValue}>{entry.lipids.colesterolTotal} mg/dL</Text>
+                </View>
+              )}
+
+              {entry.notas ? (
+                <View style={styles.noteBlock}>
+                  <IconImage name="nota" size={18} />
+                  <Text style={styles.noteText}>{entry.notas}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      )}
     </ScreenContainer>
   );
 }
@@ -86,31 +186,28 @@ const styles = StyleSheet.create({
     fontSize: VitaCareTheme.typography.body,
     fontFamily: VitaCareTheme.typography.fontFamily,
   },
-  filtersRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: VitaCareTheme.spacing.sm,
+  loader: {
+    marginTop: VitaCareTheme.spacing.xl,
   },
-  filterChip: {
-    paddingHorizontal: VitaCareTheme.spacing.md,
-    paddingVertical: 10,
-    borderRadius: 999,
+  emptyCard: {
     backgroundColor: VitaCareTheme.colors.surface,
+    borderRadius: VitaCareTheme.radius.lg,
     borderWidth: 1,
     borderColor: VitaCareTheme.colors.border,
+    padding: VitaCareTheme.spacing.lg,
+    gap: VitaCareTheme.spacing.xs,
+    ...VitaCareTheme.shadow.card,
   },
-  filterActive: {
-    backgroundColor: VitaCareTheme.colors.primary,
-    borderColor: VitaCareTheme.colors.primary,
+  emptyTitle: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: VitaCareTheme.typography.body,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "800",
   },
-  filterText: {
-    color: VitaCareTheme.colors.text,
+  emptyText: {
+    color: VitaCareTheme.colors.textMuted,
     fontSize: VitaCareTheme.typography.small,
     fontFamily: VitaCareTheme.typography.fontFamily,
-    fontWeight: "700",
-  },
-  filterTextActive: {
-    color: VitaCareTheme.colors.surface,
   },
   list: {
     gap: VitaCareTheme.spacing.md,

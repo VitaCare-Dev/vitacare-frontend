@@ -45,6 +45,7 @@ export function AppNavigator() {
       <Stack.Screen name="cholesterol" />
       <Stack.Screen name="glucose" />
       <Stack.Screen name="intake-history" />
+      <Stack.Screen name="measurement-detail" />
       <Stack.Screen name="medical-info" />
       <Stack.Screen name="provider-detail" />
       <Stack.Screen name="treatment" />
