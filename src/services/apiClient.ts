@@ -26,6 +26,8 @@ interface ApiRequestOptions {
   method?: HttpMethod;
   body?: unknown;
   timeoutMs?: number;
+  /** Token a usar en vez de leer `auth.currentUser` (ej. tras borrar la cuenta de Firebase, cuando ya no queda un usuario activo del que leer un token). */
+  authTokenOverride?: string;
 }
 
 /** fetch en React Native no tiene timeout por defecto: sin esto, una request
@@ -33,7 +35,10 @@ interface ApiRequestOptions {
  * cargando para siempre en vez de mostrar un error. */
 const REQUEST_TIMEOUT_MS = 15000;
 
-async function getAuthHeader(): Promise<Record<string, string>> {
+async function getAuthHeader(tokenOverride?: string): Promise<Record<string, string>> {
+  if (tokenOverride) {
+    return { Authorization: `Bearer ${tokenOverride}` };
+  }
   const user = auth.currentUser;
   if (!user) {
     return {};
@@ -43,10 +48,10 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 }
 
 async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { method = "GET", body, timeoutMs = REQUEST_TIMEOUT_MS } = options;
+  const { method = "GET", body, timeoutMs = REQUEST_TIMEOUT_MS, authTokenOverride } = options;
 
   const headers: Record<string, string> = {
-    ...(await getAuthHeader()),
+    ...(await getAuthHeader(authTokenOverride)),
   };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -107,6 +112,6 @@ export function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   return apiRequest<T>(path, { method: "PATCH", body });
 }
 
-export function apiDelete<T = void>(path: string): Promise<T> {
-  return apiRequest<T>(path, { method: "DELETE" });
+export function apiDelete<T = void>(path: string, authTokenOverride?: string): Promise<T> {
+  return apiRequest<T>(path, { method: "DELETE", authTokenOverride });
 }

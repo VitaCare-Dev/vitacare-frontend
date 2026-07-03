@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { deleteUser } from "firebase/auth";
+import { EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "firebase/auth";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Alert, Pressable, ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
+import { ReauthPasswordModal } from "@/components/ReauthPasswordModal";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { auth } from "@/config/firebase";
@@ -104,25 +106,71 @@ export default function MedicalInfoScreen() {
 
   const activeMedications = medications.filter((item) => item.activo === 1);
 
+  const [reauthVisible, setReauthVisible] = useState(false);
+  const [reauthError, setReauthError] = useState("");
+
+  // Orden importa: se borra primero la cuenta de Firebase (la operación
+  // sensible que puede fallar por "requires-recent-login") y solo si eso
+  // funciona se borran los datos en el backend. Al revés, si el paso de
+  // Firebase fallaba, los datos ya habían sido eliminados sin forma de
+  // recuperarlos, dejando la cuenta en un estado a medio borrar.
+  async function performAccountDeletion() {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No hay una sesión activa.");
+    }
+    // Se captura el token antes de borrar el usuario: una vez borrado,
+    // auth.currentUser queda en null y ya no se podría obtener uno nuevo.
+    const idToken = await user.getIdToken();
+    await deleteUser(user);
+    await apiDelete("/api/patients/me", idToken);
+  }
+
+  function handleDeleteError(error: any) {
+    // Nunca se muestra error.message tal cual: puede traer detalles
+    // técnicos (ej. "Error 500 al llamar /api/patients/me") que no le
+    // sirven al usuario. El detalle real queda solo en consola.
+    console.error("Error al eliminar la cuenta:", error);
+    Alert.alert(
+      "No se pudo eliminar la cuenta",
+      "Ocurrió un problema inesperado. Intenta de nuevo más tarde."
+    );
+  }
+
   const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      await apiDelete("/api/patients/me");
-      const user = auth.currentUser;
-      if (user) {
-        await deleteUser(user);
-      }
-    },
+    mutationFn: performAccountDeletion,
     onError: (error: any) => {
       if (error?.code === "auth/requires-recent-login") {
-        Alert.alert(
-          "Vuelve a iniciar sesión",
-          "Por seguridad, cierra sesión, vuelve a ingresar y luego intenta eliminar tu cuenta de nuevo."
-        );
+        // En vez de forzar cerrar sesión, se pide la contraseña ahí mismo
+        // (Firebase exige reautenticación reciente para borrar la cuenta).
+        setReauthError("");
+        setReauthVisible(true);
         return;
       }
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo eliminar la cuenta.";
-      Alert.alert("Error", message);
+      handleDeleteError(error);
+    },
+  });
+
+  const reauthMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const user = auth.currentUser;
+      if (!user?.email) {
+        throw new Error("No hay una sesión activa.");
+      }
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+      await performAccountDeletion();
+    },
+    onSuccess: () => {
+      setReauthVisible(false);
+    },
+    onError: (error: any) => {
+      if (error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password") {
+        setReauthError("Contraseña incorrecta. Intenta de nuevo.");
+        return;
+      }
+      setReauthVisible(false);
+      handleDeleteError(error);
     },
   });
 
@@ -208,7 +256,17 @@ export default function MedicalInfoScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Enfermedades asociadas</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Enfermedades asociadas</Text>
+          <Pressable
+            style={styles.editButton}
+            onPress={() => router.push("/add-disease")}
+            hitSlop={8}
+          >
+            <IconImage name="agregar" size={18} />
+            <Text style={styles.editButtonText}>Agregar</Text>
+          </Pressable>
+        </View>
         <InfoCard>
           {diseases.length > 0 ? (
             diseases.map((disease) => (
@@ -253,6 +311,17 @@ export default function MedicalInfoScreen() {
         variant="danger"
         onPress={handleDeleteAccount}
         disabled={deleteAccountMutation.isPending}
+      />
+
+      <ReauthPasswordModal
+        visible={reauthVisible}
+        loading={reauthMutation.isPending}
+        errorMessage={reauthError}
+        onConfirm={(password) => reauthMutation.mutate(password)}
+        onCancel={() => {
+          setReauthVisible(false);
+          setReauthError("");
+        }}
       />
     </ScreenContainer>
   );
