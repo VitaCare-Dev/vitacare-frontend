@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
@@ -65,6 +66,17 @@ export default function AlertsRecommendationsScreen() {
   const recommendations = recommendationsQuery.data ?? [];
   const loading = alertsQuery.isLoading || recommendationsQuery.isLoading;
 
+  // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se le
+  // muestra un mensaje genérico, nunca el error crudo del backend.
+  useEffect(() => {
+    if (alertsQuery.error) console.error("Error al cargar alertas:", alertsQuery.error);
+  }, [alertsQuery.error]);
+  useEffect(() => {
+    if (recommendationsQuery.error) {
+      console.error("Error al cargar recomendaciones:", recommendationsQuery.error);
+    }
+  }, [recommendationsQuery.error]);
+
   return (
     <ScreenContainer scrollable>
       <ScreenHeader showBackButton title="Alertas" />
@@ -82,7 +94,11 @@ export default function AlertsRecommendationsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Alertas IA</Text>
             <View style={styles.list}>
-              {alerts.length === 0 ? (
+              {alertsQuery.isError ? (
+                <Text style={styles.errorText}>
+                  No se pudieron cargar las alertas. Intenta de nuevo más tarde.
+                </Text>
+              ) : alerts.length === 0 ? (
                 <Text style={styles.emptyText}>No tienes alertas registradas.</Text>
               ) : (
                 alerts.map((item) => (
@@ -111,7 +127,11 @@ export default function AlertsRecommendationsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recomendaciones alimentarias</Text>
             <View style={styles.list}>
-              {recommendations.length === 0 ? (
+              {recommendationsQuery.isError ? (
+                <Text style={styles.errorText}>
+                  No se pudieron cargar las recomendaciones. Intenta de nuevo más tarde.
+                </Text>
+              ) : recommendations.length === 0 ? (
                 <Text style={styles.emptyText}>Aún no tienes recomendaciones generadas.</Text>
               ) : (
                 recommendations.map((item) => (
@@ -178,6 +198,12 @@ const styles = StyleSheet.create({
     color: VitaCareTheme.colors.textMuted,
     fontSize: VitaCareTheme.typography.body,
     fontFamily: VitaCareTheme.typography.fontFamily,
+  },
+  errorText: {
+    color: "#B54444",
+    fontSize: VitaCareTheme.typography.body,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
   },
   card: {
     borderRadius: VitaCareTheme.radius.lg,
