@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
-import { apiGet } from "@/services/apiClient";
+import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
@@ -40,6 +40,8 @@ function formatDateTime(fechaHora: string): string {
 }
 
 export default function MeasurementDetailScreen() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { idControl } = useLocalSearchParams<{ idControl?: string }>();
   const targetId = idControl ? Number(idControl) : null;
   const authState = useAuth();
@@ -67,6 +69,64 @@ export default function MeasurementDetailScreen() {
   const lipids = (lipidsQuery.data ?? []).find((item) => item.idControl === targetId) ?? null;
   const vitals = (vitalsQuery.data ?? []).find((item) => item.idControl === targetId) ?? null;
   const base = glucose ?? lipids ?? vitals;
+
+  function invalidateMeasurements() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
+    queryClient.invalidateQueries({ queryKey: queryKeys.glucoseList });
+    queryClient.invalidateQueries({ queryKey: queryKeys.lipidsList });
+    queryClient.invalidateQueries({ queryKey: queryKeys.vitalsList });
+    queryClient.invalidateQueries({ queryKey: queryKeys.latestGlucose });
+    queryClient.invalidateQueries({ queryKey: queryKeys.latestLipids });
+    queryClient.invalidateQueries({ queryKey: queryKeys.latestVitals });
+  }
+
+  // Si al borrar una sección no queda ninguna otra medición asociada a este
+  // control, ya no tiene sentido seguir mostrando esta pantalla vacía.
+  function isLastRemainingSection(deleted: "glucose" | "lipids" | "vitals"): boolean {
+    const others = [
+      deleted !== "glucose" && glucose,
+      deleted !== "lipids" && lipids,
+      deleted !== "vitals" && vitals,
+    ].filter(Boolean).length;
+    return others === 0;
+  }
+
+  function showDeleteError(error: unknown) {
+    const message = error instanceof ApiError ? error.message : "No se pudo eliminar el registro.";
+    Alert.alert("Error", message);
+  }
+
+  const deleteGlucoseMutation = useMutation({
+    mutationFn: () => apiDelete(`/api/measurements/glucose/${targetId}`),
+    onSuccess: () => {
+      invalidateMeasurements();
+      if (isLastRemainingSection("glucose")) router.back();
+    },
+    onError: (error) => showDeleteError(error),
+  });
+  const deleteLipidsMutation = useMutation({
+    mutationFn: () => apiDelete(`/api/measurements/lipids/${targetId}`),
+    onSuccess: () => {
+      invalidateMeasurements();
+      if (isLastRemainingSection("lipids")) router.back();
+    },
+    onError: (error) => showDeleteError(error),
+  });
+  const deleteVitalsMutation = useMutation({
+    mutationFn: () => apiDelete(`/api/measurements/vitals/${targetId}`),
+    onSuccess: () => {
+      invalidateMeasurements();
+      if (isLastRemainingSection("vitals")) router.back();
+    },
+    onError: (error) => showDeleteError(error),
+  });
+
+  function confirmDelete(title: string, onConfirm: () => void) {
+    Alert.alert(title, "Esta acción no se puede deshacer. ¿Continuar?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Eliminar", style: "destructive", onPress: onConfirm },
+    ]);
+  }
 
   if (loading) {
     return (
@@ -98,30 +158,46 @@ export default function MeasurementDetailScreen() {
         <Text style={styles.date}>{formatDateTime(base.fechaHora)}</Text>
       </View>
 
-      {vitals?.presionSistolica != null && vitals?.presionDiastolica != null && (
-        <DetailCard icon="presion" title="Presión arterial">
-          <DetailRow
-            label="Valor"
-            value={`${vitals.presionSistolica}/${vitals.presionDiastolica} mmHg`}
-          />
-        </DetailCard>
-      )}
-
       {vitals && (
-        <DetailCard icon="temperatura" title="Temperatura y peso">
+        <DetailCard
+          icon="presion"
+          title="Signos vitales"
+          onDelete={() =>
+            confirmDelete("Eliminar signos vitales", () => deleteVitalsMutation.mutate())
+          }
+          deleting={deleteVitalsMutation.isPending}
+        >
+          {vitals.presionSistolica != null && vitals.presionDiastolica != null && (
+            <DetailRow
+              label="Presión arterial"
+              value={`${vitals.presionSistolica}/${vitals.presionDiastolica} mmHg`}
+            />
+          )}
           <DetailRow label="Temperatura" value={`${vitals.temperatura} °C`} />
           <DetailRow label="Peso" value={`${vitals.peso} kg`} />
         </DetailCard>
       )}
 
       {glucose && (
-        <DetailCard icon="glucosa" title="Glucosa">
+        <DetailCard
+          icon="glucosa"
+          title="Glucosa"
+          onDelete={() => confirmDelete("Eliminar glucosa", () => deleteGlucoseMutation.mutate())}
+          deleting={deleteGlucoseMutation.isPending}
+        >
           <DetailRow label="Valor" value={`${glucose.glucosa} mg/dL`} />
         </DetailCard>
       )}
 
       {lipids && (
-        <DetailCard icon="corazon" title="Perfil lipídico">
+        <DetailCard
+          icon="corazon"
+          title="Perfil lipídico"
+          onDelete={() =>
+            confirmDelete("Eliminar perfil lipídico", () => deleteLipidsMutation.mutate())
+          }
+          deleting={deleteLipidsMutation.isPending}
+        >
           <DetailRow label="Colesterol total" value={`${lipids.colesterolTotal} mg/dL`} />
           <DetailRow label="LDL" value={`${lipids.colesterolLDL} mg/dL`} />
           <DetailRow label="HDL" value={`${lipids.colesterolHDL} mg/dL`} />
@@ -142,7 +218,15 @@ function DetailCard({
   icon,
   title,
   children,
-}: Readonly<{ icon: "presion" | "temperatura" | "glucosa" | "corazon" | "nota"; title: string; children: React.ReactNode }>) {
+  onDelete,
+  deleting,
+}: Readonly<{
+  icon: "presion" | "temperatura" | "glucosa" | "corazon" | "nota";
+  title: string;
+  children: React.ReactNode;
+  onDelete?: () => void;
+  deleting?: boolean;
+}>) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -150,6 +234,13 @@ function DetailCard({
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
       {children}
+      {onDelete ? (
+        <Pressable onPress={onDelete} disabled={deleting} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>
+            {deleting ? "Eliminando..." : "Eliminar"}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -215,6 +306,16 @@ const styles = StyleSheet.create({
     color: VitaCareTheme.colors.text,
     fontSize: VitaCareTheme.typography.body,
     fontFamily: VitaCareTheme.typography.fontFamily,
+  },
+  deleteButton: {
+    alignSelf: "flex-start",
+    paddingTop: VitaCareTheme.spacing.xs,
+  },
+  deleteButtonText: {
+    color: "#B54444",
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
   },
   emptyCard: {
     backgroundColor: VitaCareTheme.colors.surface,
