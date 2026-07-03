@@ -7,7 +7,7 @@ import { VitaCareTheme } from "@/theme/theme";
 type AppButtonProps = Readonly<{
   title: string;
   onPress?: () => void;
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   icon?: IconName;
   iconTone?: "green" | "white";
   trailing?: ReactNode;
@@ -39,7 +39,11 @@ export function AppButton(props: AppButtonProps) {
       <View style={styles.content}>
         {icon ? <IconImage name={icon} tone={iconTone} size={20} /> : null}
         <Text
-          style={[styles.text, variant === "outline" && styles.outlineText]}
+          style={[
+            styles.text,
+            variant === "outline" && styles.outlineText,
+            variant === "danger" && styles.dangerText,
+          ]}
         >
           {title}
         </Text>
@@ -87,6 +91,14 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: "transparent",
+  },
+  danger: {
+    backgroundColor: VitaCareTheme.colors.surface,
+    borderWidth: 1,
+    borderColor: "#B54444",
+  },
+  dangerText: {
+    color: "#B54444",
   },
   pressed: {
     opacity: 0.85,

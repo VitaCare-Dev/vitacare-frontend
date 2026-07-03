@@ -1,12 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { deleteUser } from "firebase/auth";
 import { useRouter } from "expo-router";
-import { Pressable, ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
+import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { auth } from "@/config/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiGet } from "@/services/apiClient";
+import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
@@ -100,6 +103,43 @@ export default function MedicalInfoScreen() {
   const medications = medicationsQuery.data ?? [];
 
   const activeMedications = medications.filter((item) => item.activo === 1);
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      await apiDelete("/api/patients/me");
+      const user = auth.currentUser;
+      if (user) {
+        await deleteUser(user);
+      }
+    },
+    onError: (error: any) => {
+      if (error?.code === "auth/requires-recent-login") {
+        Alert.alert(
+          "Vuelve a iniciar sesión",
+          "Por seguridad, cierra sesión, vuelve a ingresar y luego intenta eliminar tu cuenta de nuevo."
+        );
+        return;
+      }
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo eliminar la cuenta.";
+      Alert.alert("Error", message);
+    },
+  });
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Eliminar cuenta",
+      "Esta acción es irreversible: se borrarán todos tus datos (mediciones, medicamentos, dirección, enfermedades) y tu cuenta. ¿Continuar?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar cuenta",
+          style: "destructive",
+          onPress: () => deleteAccountMutation.mutate(),
+        },
+      ]
+    );
+  }
 
   if (loading) {
     return (
@@ -207,6 +247,13 @@ export default function MedicalInfoScreen() {
           <InfoRow label="Total registrados" value={String(medications.length)} />
         </InfoCard>
       </View>
+
+      <AppButton
+        title={deleteAccountMutation.isPending ? "Eliminando..." : "Eliminar cuenta"}
+        variant="danger"
+        onPress={handleDeleteAccount}
+        disabled={deleteAccountMutation.isPending}
+      />
     </ScreenContainer>
   );
 }
