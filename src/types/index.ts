@@ -17,15 +17,6 @@ export type VitalMeasurement = {
   icon: "presion" | "glucosa" | "peso" | "corazon" | "temperatura";
 };
 
-export type AlertItem = {
-  id: string;
-  type: "alert" | "recommendation";
-  title: string;
-  date: string;
-  detail: string;
-  status: "Leída" | "No leída";
-};
-
 export type GlucosePeriod =
   | "En ayunas"
   | "Después de comer"

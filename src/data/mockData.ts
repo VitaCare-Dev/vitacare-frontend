@@ -1,5 +1,4 @@
 import type {
-    AlertItem,
     GlucosePeriod,
     HealthControlOption,
     Patient,
@@ -64,42 +63,6 @@ export const healthControlOptions: HealthControlOption[] = [
     label: "Colesterol / lípidos",
     icon: "registros",
     description: "Perfil lipídico y triglicéridos.",
-  },
-];
-
-export const alerts: AlertItem[] = [
-  {
-    id: "a1",
-    type: "alert",
-    title: "Presión diastólica elevada",
-    date: "14/06/2026",
-    detail: "Se recomienda volver a medir y registrar el valor en reposo.",
-    status: "No leída",
-  },
-  {
-    id: "a2",
-    type: "alert",
-    title: "Control de glucosa",
-    date: "14/06/2026",
-    detail: "El valor se encuentra dentro de rango, mantener seguimiento.",
-    status: "Leída",
-  },
-  {
-    id: "r1",
-    type: "recommendation",
-    title: "Reducir sodio",
-    date: "13/06/2026",
-    detail:
-      "Prioriza alimentos frescos, legumbres y preparaciones bajas en sal.",
-    status: "Leída",
-  },
-  {
-    id: "r2",
-    type: "recommendation",
-    title: "Agregar fibra al desayuno",
-    date: "12/06/2026",
-    detail: "Avena, fruta y frutos secos ayudan al control glucémico.",
-    status: "No leída",
   },
 ];
 

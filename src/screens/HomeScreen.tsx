@@ -62,6 +62,13 @@ type MedicationRecord = {
   activo: number;
 };
 
+/** Espejo de AlertaDto del BFF. */
+type AlertRecord = {
+  idAlertaIa: number;
+  motivoAlerta: string;
+  recomendacionIa: string;
+};
+
 type SummaryCard = {
   label: string;
   value: string;
@@ -129,6 +136,12 @@ export default function HomeScreen() {
   const activeMedicationQuery = useQuery({
     queryKey: queryKeys.medicationsActive,
     queryFn: () => apiGet<MedicationRecord[]>("/api/medications?active=true"),
+    enabled,
+  });
+
+  const unreadAlertsQuery = useQuery({
+    queryKey: queryKeys.alertsUnread,
+    queryFn: () => apiGet<AlertRecord[]>("/api/alerts/unread"),
     enabled,
   });
 
@@ -290,17 +303,23 @@ export default function HomeScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Alerta IA destacada</Text>
-        <View style={styles.alertCard}>
+        <Pressable
+          style={styles.alertCard}
+          onPress={() => router.push("/alerts-recommendations")}
+        >
           <View style={styles.alertIconWrap}>
             <IconImage name="campana" size={28} />
           </View>
           <View style={styles.alertTextWrap}>
-            <Text style={styles.alertTitle}>Presión diastólica elevada</Text>
+            <Text style={styles.alertTitle}>
+              {unreadAlertsQuery.data?.[0]?.motivoAlerta ?? "Sin alertas nuevas"}
+            </Text>
             <Text style={styles.alertText}>
-              Se sugiere repetir el control en reposo y mantener hidratación.
+              {unreadAlertsQuery.data?.[0]?.recomendacionIa ??
+                "No se han detectado eventos que requieran atención."}
             </Text>
           </View>
-        </View>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

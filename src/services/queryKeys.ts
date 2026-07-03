@@ -12,4 +12,7 @@ export const queryKeys = {
   latestVitals: ["measurements", "vitals", "latest"] as const,
   medicationsActive: ["medications", "active"] as const,
   medicationsAll: ["medications", "all"] as const,
+  alertsAll: ["alerts", "all"] as const,
+  alertsUnread: ["alerts", "unread"] as const,
+  recommendationsAll: ["recommendations", "all"] as const,
 };
