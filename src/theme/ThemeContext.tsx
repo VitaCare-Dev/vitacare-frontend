@@ -34,6 +34,13 @@ export function AppThemeProvider({ children }: Readonly<{ children: ReactNode }>
     });
   }, []);
 
+  // Le dice a los componentes nativos (ej. el diálogo del Picker de Android)
+  // qué apariencia usar, controlada por nuestro propio switch en vez del
+  // ajuste de tema del sistema operativo del teléfono.
+  useEffect(() => {
+    Appearance.setColorScheme(mode);
+  }, [mode]);
+
   function toggleTheme() {
     setMode((prev) => {
       const next: ThemeMode = prev === "light" ? "dark" : "light";

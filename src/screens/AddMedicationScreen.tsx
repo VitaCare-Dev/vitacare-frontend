@@ -1,9 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -19,6 +21,7 @@ import {
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import { addMedicationSchema, type AddMedicationFormValues } from "@/utils/formSchemas";
 
 type MedicationPayload = {
   nombreMedicamento: string;
@@ -47,14 +50,28 @@ export default function AddMedicationScreen() {
   const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [medicationName, setMedicationName] = useState("");
-  const [dose, setDose] = useState("");
-  const [frequencyHours, setFrequencyHours] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AddMedicationFormValues>({
+    resolver: zodResolver(addMedicationSchema),
+    defaultValues: {
+      medicationName: "",
+      dose: "",
+      frequencyHours: "",
+      startDate: undefined as unknown as Date,
+      endDate: null,
+    },
+  });
+
+  const startDate = watch("startDate");
+  const endDate = watch("endDate");
 
   const saveMutation = useMutation({
     mutationFn: (payload: MedicationPayload) =>
@@ -73,33 +90,21 @@ export default function AddMedicationScreen() {
       ]);
     },
     onError: (error) => {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : "No se pudo guardar el medicamento."
-      );
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo guardar el medicamento.";
+      Alert.alert("Error", message);
     },
   });
 
-  const handleSubmit = () => {
-    if (!medicationName.trim() || !dose.trim() || !frequencyHours.trim() || !startDate) {
-      setErrorMessage("Completa nombre, dosis, frecuencia y fecha de inicio.");
-      return;
-    }
-
-    const parsedFrequency = Number(frequencyHours);
-    if (!Number.isFinite(parsedFrequency) || parsedFrequency <= 0) {
-      setErrorMessage("La frecuencia debe ser un número válido de horas.");
-      return;
-    }
-
-    setErrorMessage("");
+  function onSubmit(values: AddMedicationFormValues) {
     saveMutation.mutate({
-      nombreMedicamento: medicationName.trim(),
-      dosis: dose.trim(),
-      frecuenciaHoras: parsedFrequency,
-      fechaInicio: toIsoDate(startDate),
-      fechaTermino: endDate ? toIsoDate(endDate) : undefined,
+      nombreMedicamento: values.medicationName.trim(),
+      dosis: values.dose.trim(),
+      frecuenciaHoras: Number(values.frequencyHours),
+      fechaInicio: toIsoDate(values.startDate),
+      fechaTermino: values.endDate ? toIsoDate(values.endDate) : undefined,
     });
-  };
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -112,36 +117,48 @@ export default function AddMedicationScreen() {
       </View>
 
       <View style={styles.card}>
-        <AppInput
-          label="Nombre del medicamento"
-          placeholder="Ej. Metformina"
-          icon="medicamento"
-          value={medicationName}
-          onChangeText={(value) => {
-            setMedicationName(value);
-            setErrorMessage("");
-          }}
+        <Controller
+          control={control}
+          name="medicationName"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Nombre del medicamento"
+              placeholder="Ej. Metformina"
+              icon="medicamento"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Dosis"
-          placeholder="Ej. 850 mg"
-          icon="capsulas"
-          value={dose}
-          onChangeText={(value) => {
-            setDose(value);
-            setErrorMessage("");
-          }}
+        <Controller
+          control={control}
+          name="dose"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Dosis"
+              placeholder="Ej. 850 mg"
+              icon="capsulas"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Frecuencia (horas)"
-          placeholder="Ej. 12"
-          icon="nota"
-          keyboardType="numeric"
-          value={frequencyHours}
-          onChangeText={(value) => {
-            setFrequencyHours(value);
-            setErrorMessage("");
-          }}
+        <Controller
+          control={control}
+          name="frequencyHours"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Frecuencia (horas)"
+              placeholder="Ej. 12"
+              icon="nota"
+              keyboardType="numeric"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
         <Pressable onPress={() => setShowStartPicker(true)}>
@@ -152,6 +169,7 @@ export default function AddMedicationScreen() {
               icon="nota"
               value={startDate ? formatDate(startDate) : ""}
               editable={false}
+              errorMessage={errors.startDate?.message}
             />
           </View>
         </Pressable>
@@ -161,8 +179,7 @@ export default function AddMedicationScreen() {
             mode="date"
             onValueChange={(_event: DateTimePickerChangeEvent, selectedDate: Date) => {
               setShowStartPicker(false);
-              setStartDate(selectedDate);
-              setErrorMessage("");
+              setValue("startDate", selectedDate, { shouldValidate: true });
             }}
             onDismiss={() => setShowStartPicker(false)}
             accentColor={theme.colors.primary}
@@ -182,7 +199,7 @@ export default function AddMedicationScreen() {
           </View>
         </Pressable>
         {endDate ? (
-          <Pressable onPress={() => setEndDate(null)}>
+          <Pressable onPress={() => setValue("endDate", null)}>
             <Text style={styles.link}>Quitar fecha de término</Text>
           </Pressable>
         ) : null}
@@ -193,21 +210,19 @@ export default function AddMedicationScreen() {
             minimumDate={startDate ?? undefined}
             onValueChange={(_event: DateTimePickerChangeEvent, selectedDate: Date) => {
               setShowEndPicker(false);
-              setEndDate(selectedDate);
+              setValue("endDate", selectedDate);
             }}
             onDismiss={() => setShowEndPicker(false)}
             accentColor={theme.colors.primary}
             themeVariant="light"
           />
         ) : null}
-
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
       </View>
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar medicamento"}
         icon="agregar"
-        onPress={handleSubmit}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>
@@ -244,12 +259,6 @@ function createStyles(theme: VitaCareThemeType) {
     fontSize: theme.typography.small,
     fontFamily: theme.typography.fontFamily,
     fontWeight: "600",
-  },
-  error: {
-    color: "#B54444",
-    fontSize: theme.typography.small,
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: "700",
   },
 });
 }

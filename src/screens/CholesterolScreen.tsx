@@ -1,6 +1,7 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -11,7 +12,7 @@ import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
-import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
+import { cholesterolSchema, type CholesterolFormValues } from "@/utils/formSchemas";
 
 type LipidsPayload = {
   colesterolTotal: number;
@@ -26,12 +27,11 @@ export default function CholesterolScreen() {
   const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [cholesterolTotal, setCholesterolTotal] = useState("");
-  const [ldl, setLdl] = useState("");
-  const [hdl, setHdl] = useState("");
-  const [triglycerides, setTriglycerides] = useState("");
-  const [notes, setNotes] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const { control, handleSubmit, reset } = useForm<CholesterolFormValues>({
+    resolver: zodResolver(cholesterolSchema),
+    defaultValues: { colesterolTotal: "", ldl: "", hdl: "", triglyceridos: "", notas: "" },
+  });
 
   const saveMutation = useMutation({
     mutationFn: (payload: LipidsPayload) => apiPost("/api/measurements/lipids", payload),
@@ -39,59 +39,27 @@ export default function CholesterolScreen() {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
       queryClient.invalidateQueries({ queryKey: queryKeys.lipidsList });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestLipids });
-      setCholesterolTotal("");
-      setLdl("");
-      setHdl("");
-      setTriglycerides("");
-      setNotes("");
-      setErrorMessage("");
+      reset();
       Alert.alert("Registro guardado", "Tu perfil lipídico se guardó correctamente.", [
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
     onError: (error) => {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : "No se pudo registrar el colesterol."
-      );
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo registrar el colesterol.";
+      Alert.alert("Error", message);
     },
   });
 
-  const handleSave = () => {
-    const colesterolTotalValue = Number(cholesterolTotal);
-    const ldlValue = Number(ldl);
-    const hdlValue = Number(hdl);
-    const trigliceridosValue = Number(triglycerides);
-
-    if (
-      !cholesterolTotal ||
-      !ldl ||
-      !hdl ||
-      !triglycerides ||
-      [colesterolTotalValue, ldlValue, hdlValue, trigliceridosValue].some(Number.isNaN)
-    ) {
-      setErrorMessage("Por favor completa todos los campos requeridos con valores numéricos.");
-      return;
-    }
-
-    const rangeError =
-      validateRange(colesterolTotalValue, MEASUREMENT_RANGES.colesterolTotal) ??
-      validateRange(ldlValue, MEASUREMENT_RANGES.colesterolLDL) ??
-      validateRange(hdlValue, MEASUREMENT_RANGES.colesterolHDL) ??
-      validateRange(trigliceridosValue, MEASUREMENT_RANGES.trigliceridos);
-    if (rangeError) {
-      setErrorMessage(rangeError);
-      return;
-    }
-    setErrorMessage("");
-
+  function onSubmit(values: CholesterolFormValues) {
     saveMutation.mutate({
-      colesterolTotal: colesterolTotalValue,
-      colesterolLDL: ldlValue,
-      colesterolHDL: hdlValue,
-      trigliceridos: trigliceridosValue,
-      notas: notes.trim() || undefined,
+      colesterolTotal: Number(values.colesterolTotal),
+      colesterolLDL: Number(values.ldl),
+      colesterolHDL: Number(values.hdl),
+      trigliceridos: Number(values.triglyceridos),
+      notas: values.notas.trim() || undefined,
     });
-  };
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -103,59 +71,87 @@ export default function CholesterolScreen() {
         </Text>
       </View>
 
-      {!!errorMessage && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
-
       <View style={styles.formCard}>
         <Text style={styles.sectionLabel}>Valores de sangre</Text>
 
-        <AppInput
-          label="Colesterol Total"
-          placeholder="Ej: 200"
-          icon="registros"
-          value={cholesterolTotal}
-          onChangeText={setCholesterolTotal}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="colesterolTotal"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Colesterol Total"
+              placeholder="Ej: 200"
+              icon="registros"
+              value={field.value}
+              onChangeText={field.onChange}
+              keyboardType="numeric"
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
-        <AppInput
-          label="LDL (Colesterol malo)"
-          placeholder="Ej: 130"
-          icon="registros"
-          value={ldl}
-          onChangeText={setLdl}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="ldl"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="LDL (Colesterol malo)"
+              placeholder="Ej: 130"
+              icon="registros"
+              value={field.value}
+              onChangeText={field.onChange}
+              keyboardType="numeric"
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
-        <AppInput
-          label="HDL (Colesterol bueno)"
-          placeholder="Ej: 40"
-          icon="registros"
-          value={hdl}
-          onChangeText={setHdl}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="hdl"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="HDL (Colesterol bueno)"
+              placeholder="Ej: 40"
+              icon="registros"
+              value={field.value}
+              onChangeText={field.onChange}
+              keyboardType="numeric"
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
-        <AppInput
-          label="Triglicéridos"
-          placeholder="Ej: 150"
-          icon="registros"
-          value={triglycerides}
-          onChangeText={setTriglycerides}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="triglyceridos"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Triglicéridos"
+              placeholder="Ej: 150"
+              icon="registros"
+              value={field.value}
+              onChangeText={field.onChange}
+              keyboardType="numeric"
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
-        <AppInput
-          label="Notas (opcional)"
-          placeholder="Agrega observaciones relevantes"
-          icon="nota"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={3}
+        <Controller
+          control={control}
+          name="notas"
+          render={({ field }) => (
+            <AppInput
+              label="Notas (opcional)"
+              placeholder="Agrega observaciones relevantes"
+              icon="nota"
+              value={field.value}
+              onChangeText={field.onChange}
+              multiline
+              numberOfLines={3}
+            />
+          )}
         />
 
         <View style={styles.infoCard}>
@@ -173,7 +169,7 @@ export default function CholesterolScreen() {
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar registro"}
-        onPress={handleSave}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>
@@ -194,19 +190,6 @@ function createStyles(theme: VitaCareThemeType) {
   },
   subtitle: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    fontFamily: theme.typography.fontFamily,
-  },
-  errorContainer: {
-    backgroundColor: "#fee",
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f44336",
-  },
-  errorText: {
-    color: "#c62828",
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
   },

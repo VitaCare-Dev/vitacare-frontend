@@ -1,13 +1,16 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
+import { PhoneInput } from "@/components/PhoneInput";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +18,8 @@ import { ApiError, apiGet, apiPut } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import { editProfileSchema, type EditProfileFormValues } from "@/utils/formSchemas";
+import { formatChileanPhone } from "@/utils/phoneFormat";
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -47,6 +52,7 @@ export default function EditProfileScreen() {
   const queryClient = useQueryClient();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const patientQuery = useQuery({
     queryKey: queryKeys.patientMe,
@@ -55,26 +61,38 @@ export default function EditProfileScreen() {
   });
   const patient = patientQuery.data ?? null;
 
-  const [nombre, setNombre] = useState("");
-  const [apellidoPaterno, setApellidoPaterno] = useState("");
-  const [apellidoMaterno, setApellidoMaterno] = useState("");
-  const [telefonoPrincipal, setTelefonoPrincipal] = useState("");
-  const [telefonoSecundario, setTelefonoSecundario] = useState("");
-  const [birthDate, setBirthDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<EditProfileFormValues>({
+    resolver: zodResolver(editProfileSchema),
+    defaultValues: {
+      nombre: "",
+      apellidoPaterno: "",
+      apellidoMaterno: "",
+      telefonoPrincipal: "",
+      telefonoSecundario: "",
+      birthDate: undefined as unknown as Date,
+    },
+  });
 
   useEffect(() => {
-    if (initialized || !patient) return;
+    if (!patient) return;
+    reset({
+      nombre: patient.nombre,
+      apellidoPaterno: patient.apellidoPaterno,
+      apellidoMaterno: patient.apellidoMaterno ?? "",
+      telefonoPrincipal: formatChileanPhone(patient.telefonoPrincipal),
+      telefonoSecundario: formatChileanPhone(patient.telefonoSecundario ?? ""),
+      birthDate: new Date(patient.fechaNacimiento),
+    });
+  }, [patient, reset]);
 
-    setNombre(patient.nombre);
-    setApellidoPaterno(patient.apellidoPaterno);
-    setApellidoMaterno(patient.apellidoMaterno ?? "");
-    setTelefonoPrincipal(patient.telefonoPrincipal);
-    setTelefonoSecundario(patient.telefonoSecundario ?? "");
-    setBirthDate(new Date(patient.fechaNacimiento));
-    setInitialized(true);
-  }, [patient, initialized]);
+  const birthDate = watch("birthDate");
 
   const saveMutation = useMutation({
     mutationFn: (payload: {
@@ -98,22 +116,14 @@ export default function EditProfileScreen() {
     },
   });
 
-  function handleSave() {
-    if (!nombre.trim() || !apellidoPaterno.trim() || !telefonoPrincipal.trim() || !birthDate) {
-      Alert.alert(
-        "Campos requeridos",
-        "Nombre, apellido paterno, teléfono principal y fecha de nacimiento son obligatorios."
-      );
-      return;
-    }
-
+  function onSubmit(values: EditProfileFormValues) {
     saveMutation.mutate({
-      nombre: nombre.trim(),
-      apellidoPaterno: apellidoPaterno.trim(),
-      apellidoMaterno: apellidoMaterno.trim() || undefined,
-      fechaNacimiento: toIsoDate(birthDate),
-      telefonoPrincipal: telefonoPrincipal.trim(),
-      telefonoSecundario: telefonoSecundario.trim() || undefined,
+      nombre: values.nombre.trim(),
+      apellidoPaterno: values.apellidoPaterno.trim(),
+      apellidoMaterno: values.apellidoMaterno.trim() || undefined,
+      fechaNacimiento: toIsoDate(values.birthDate),
+      telefonoPrincipal: values.telefonoPrincipal.trim(),
+      telefonoSecundario: values.telefonoSecundario.trim() || undefined,
     });
   }
 
@@ -135,20 +145,46 @@ export default function EditProfileScreen() {
       </View>
 
       <View style={styles.card}>
-        <AppInput label="Nombre" placeholder="María Carolina" icon="usuario" value={nombre} onChangeText={setNombre} />
-        <AppInput
-          label="Apellido paterno"
-          placeholder="Pérez"
-          icon="usuario"
-          value={apellidoPaterno}
-          onChangeText={setApellidoPaterno}
+        <Controller
+          control={control}
+          name="nombre"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Nombre"
+              placeholder="María Carolina"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Apellido materno"
-          placeholder="Gómez"
-          icon="usuario"
-          value={apellidoMaterno}
-          onChangeText={setApellidoMaterno}
+        <Controller
+          control={control}
+          name="apellidoPaterno"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Apellido paterno"
+              placeholder="Pérez"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="apellidoMaterno"
+          render={({ field }) => (
+            <AppInput
+              label="Apellido materno"
+              placeholder="Gómez"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+            />
+          )}
         />
         <Pressable onPress={() => setShowDatePicker(true)}>
           <View pointerEvents="none">
@@ -158,6 +194,7 @@ export default function EditProfileScreen() {
               icon="nota"
               value={birthDate ? formatDate(birthDate) : ""}
               editable={false}
+              errorMessage={errors.birthDate?.message}
             />
           </View>
         </Pressable>
@@ -168,34 +205,44 @@ export default function EditProfileScreen() {
             maximumDate={new Date()}
             onValueChange={(_event: DateTimePickerChangeEvent, selectedDate: Date) => {
               setShowDatePicker(false);
-              setBirthDate(selectedDate);
+              setValue("birthDate", selectedDate, { shouldValidate: true });
             }}
             onDismiss={() => setShowDatePicker(false)}
             accentColor={theme.colors.primary}
             themeVariant="light"
           />
         ) : null}
-        <AppInput
-          label="Teléfono principal"
-          placeholder="+56 9 8765 4321"
-          icon="usuario"
-          keyboardType="phone-pad"
-          value={telefonoPrincipal}
-          onChangeText={setTelefonoPrincipal}
+        <Controller
+          control={control}
+          name="telefonoPrincipal"
+          render={({ field, fieldState }) => (
+            <PhoneInput
+              label="Teléfono principal"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Teléfono secundario (opcional)"
-          placeholder="+56 9 1234 5678"
-          icon="usuario"
-          keyboardType="phone-pad"
-          value={telefonoSecundario}
-          onChangeText={setTelefonoSecundario}
+        <Controller
+          control={control}
+          name="telefonoSecundario"
+          render={({ field, fieldState }) => (
+            <PhoneInput
+              label="Teléfono secundario (opcional)"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
       </View>
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar cambios"}
-        onPress={handleSave}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>

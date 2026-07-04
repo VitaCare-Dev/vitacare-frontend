@@ -1,6 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -11,25 +13,27 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { auth } from "@/config/firebase";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import { loginSchema, type LoginFormValues } from "@/utils/formSchemas";
 
 export default function LoginScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    if (!email.trim() || !password) {
-      Alert.alert("Campos requeridos", "Por favor ingresa tu correo y contraseña.");
-      return;
-    }
+  const {
+    control,
+    handleSubmit,
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
+  async function onSubmit(values: LoginFormValues) {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      await signInWithEmailAndPassword(auth, values.email.trim(), values.password);
       router.replace("/(tabs)/home");
     } catch (error: any) {
       const messages: Record<string, string> = {
@@ -56,38 +60,52 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
-        <AppInput
-          label="Correo electrónico"
-          placeholder="correo@vitacare.cl"
-          icon="usuario"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <AppInput
-          label="Contraseña"
-          placeholder="••••••••"
-          secureTextEntry={!showPassword}
-          icon="medicamento"
-          value={password}
-          onChangeText={setPassword}
-          rightElement={
-            <PasswordVisibilityToggle
-              visible={showPassword}
-              onToggle={() => setShowPassword((prev) => !prev)}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Correo electrónico"
+              placeholder="correo@vitacare.cl"
+              icon="usuario"
+              value={field.value}
+              onChangeText={field.onChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              errorMessage={fieldState.error?.message}
             />
-          }
+          )}
+        />
+        <Controller
+          control={control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Contraseña"
+              placeholder="••••••••"
+              secureTextEntry={!showPassword}
+              icon="medicamento"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+              rightElement={
+                <PasswordVisibilityToggle
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((prev) => !prev)}
+                />
+              }
+            />
+          )}
         />
 
         <AppButton
           title={loading ? "Ingresando..." : "Iniciar sesión"}
-          onPress={handleLogin}
+          onPress={handleSubmit(onSubmit)}
           disabled={loading}
         />
 
-        <Pressable onPress={() => router.push("/register")}>
+        <Pressable onPress={() => router.push("/forgot-password")}>
           <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
         </Pressable>
 

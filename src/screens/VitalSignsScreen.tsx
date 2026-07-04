@@ -1,6 +1,7 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -11,7 +12,7 @@ import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
-import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
+import { vitalSignsSchema, type VitalSignsFormValues } from "@/utils/formSchemas";
 
 type VitalsPayload = {
   presionSistolica?: number;
@@ -26,12 +27,11 @@ export default function VitalSignsScreen() {
   const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [sistolica, setSistolica] = useState("");
-  const [diastolica, setDiastolica] = useState("");
-  const [temperatura, setTemperatura] = useState("");
-  const [peso, setPeso] = useState("");
-  const [notas, setNotas] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const { control, handleSubmit, reset } = useForm<VitalSignsFormValues>({
+    resolver: zodResolver(vitalSignsSchema),
+    defaultValues: { sistolica: "", diastolica: "", temperatura: "", peso: "", notas: "" },
+  });
 
   const saveMutation = useMutation({
     mutationFn: (payload: VitalsPayload) => apiPost("/api/measurements/vitals", payload),
@@ -39,72 +39,28 @@ export default function VitalSignsScreen() {
       queryClient.invalidateQueries({ queryKey: queryKeys.measurementsHistory });
       queryClient.invalidateQueries({ queryKey: queryKeys.vitalsList });
       queryClient.invalidateQueries({ queryKey: queryKeys.latestVitals });
-      setSistolica("");
-      setDiastolica("");
-      setTemperatura("");
-      setPeso("");
-      setNotas("");
-      setErrorMessage("");
+      reset();
       Alert.alert("Registro guardado", "Tus signos vitales se guardaron correctamente.", [
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
     onError: (error) => {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : "No se pudo registrar los signos vitales."
-      );
+      const message =
+        error instanceof ApiError ? error.message : "No se pudo registrar los signos vitales.";
+      Alert.alert("Error", message);
     },
   });
 
-  const handleSave = () => {
-    const temperaturaValue = Number(temperatura);
-    const pesoValue = Number(peso);
-
-    if (!temperatura || !peso || Number.isNaN(temperaturaValue) || Number.isNaN(pesoValue)) {
-      setErrorMessage("Temperatura y peso son obligatorios y deben ser valores numéricos.");
-      return;
-    }
-
-    const vitalsRangeError =
-      validateRange(temperaturaValue, MEASUREMENT_RANGES.temperatura) ??
-      validateRange(pesoValue, MEASUREMENT_RANGES.peso);
-    if (vitalsRangeError) {
-      setErrorMessage(vitalsRangeError);
-      return;
-    }
-
-    if (sistolica.trim() || diastolica.trim()) {
-      const sistolicaValue = Number(sistolica);
-      const diastolicaValue = Number(diastolica);
-      if (!sistolica.trim() || !diastolica.trim() || Number.isNaN(sistolicaValue) || Number.isNaN(diastolicaValue)) {
-        setErrorMessage("Si registras presión arterial, completa tanto la sistólica como la diastólica.");
-        return;
-      }
-      const presionRangeError =
-        validateRange(sistolicaValue, MEASUREMENT_RANGES.presionSistolica) ??
-        validateRange(diastolicaValue, MEASUREMENT_RANGES.presionDiastolica);
-      if (presionRangeError) {
-        setErrorMessage(presionRangeError);
-        return;
-      }
-      setErrorMessage("");
-      saveMutation.mutate({
-        presionSistolica: sistolicaValue,
-        presionDiastolica: diastolicaValue,
-        temperatura: temperaturaValue,
-        peso: pesoValue,
-        notas: notas.trim() || undefined,
-      });
-      return;
-    }
-
-    setErrorMessage("");
+  function onSubmit(values: VitalSignsFormValues) {
+    const hasPresion = values.sistolica.trim() !== "" && values.diastolica.trim() !== "";
     saveMutation.mutate({
-      temperatura: temperaturaValue,
-      peso: pesoValue,
-      notas: notas.trim() || undefined,
+      presionSistolica: hasPresion ? Number(values.sistolica) : undefined,
+      presionDiastolica: hasPresion ? Number(values.diastolica) : undefined,
+      temperatura: Number(values.temperatura),
+      peso: Number(values.peso),
+      notas: values.notas.trim() || undefined,
     });
-  };
+  }
 
   return (
     <ScreenContainer scrollable>
@@ -116,59 +72,87 @@ export default function VitalSignsScreen() {
         </Text>
       </View>
 
-      {!!errorMessage && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
-
       <View style={styles.card}>
-        <AppInput
-          label="Presión sistólica (opcional)"
-          placeholder="120"
-          keyboardType="numeric"
-          icon="presion"
-          value={sistolica}
-          onChangeText={setSistolica}
+        <Controller
+          control={control}
+          name="sistolica"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Presión sistólica (opcional)"
+              placeholder="120"
+              keyboardType="numeric"
+              icon="presion"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Presión diastólica (opcional)"
-          placeholder="80"
-          keyboardType="numeric"
-          icon="presion"
-          value={diastolica}
-          onChangeText={setDiastolica}
+        <Controller
+          control={control}
+          name="diastolica"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Presión diastólica (opcional)"
+              placeholder="80"
+              keyboardType="numeric"
+              icon="presion"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Temperatura"
-          placeholder="36.6"
-          keyboardType="decimal-pad"
-          icon="corazon"
-          value={temperatura}
-          onChangeText={setTemperatura}
+        <Controller
+          control={control}
+          name="temperatura"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Temperatura"
+              placeholder="36.6"
+              keyboardType="decimal-pad"
+              icon="corazon"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Peso"
-          placeholder="65.2"
-          keyboardType="decimal-pad"
-          icon="peso"
-          value={peso}
-          onChangeText={setPeso}
+        <Controller
+          control={control}
+          name="peso"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Peso"
+              placeholder="65.2"
+              keyboardType="decimal-pad"
+              icon="peso"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput
-          label="Notas (opcional)"
-          placeholder="Agrega una observación breve"
-          icon="nota"
-          value={notas}
-          onChangeText={setNotas}
-          multiline
-          numberOfLines={3}
+        <Controller
+          control={control}
+          name="notas"
+          render={({ field }) => (
+            <AppInput
+              label="Notas (opcional)"
+              placeholder="Agrega una observación breve"
+              icon="nota"
+              value={field.value}
+              onChangeText={field.onChange}
+              multiline
+              numberOfLines={3}
+            />
+          )}
         />
       </View>
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar"}
-        onPress={handleSave}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>
@@ -188,19 +172,6 @@ function createStyles(theme: VitaCareThemeType) {
   },
   subtitle: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    fontFamily: theme.typography.fontFamily,
-  },
-  errorContainer: {
-    backgroundColor: "#fee",
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f44336",
-  },
-  errorText: {
-    color: "#c62828",
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
   },

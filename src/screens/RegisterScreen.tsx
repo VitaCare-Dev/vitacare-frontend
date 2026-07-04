@@ -1,15 +1,19 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { AppPickerField } from "@/components/AppPickerField";
 import { BrandHeader } from "@/components/BrandHeader";
+import { PasswordRequirementsChecklist } from "@/components/PasswordRequirementsChecklist";
 import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
+import { PhoneInput } from "@/components/PhoneInput";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { auth } from "@/config/firebase";
@@ -18,6 +22,15 @@ import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
 import { ApiError, apiPost } from "@/services/apiClient";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import {
+  addressSchema,
+  registerCredentialsSchema,
+  registerPersonalSchema,
+  type AddressFormValues,
+  type RegisterCredentialsValues,
+  type RegisterPersonalValues,
+} from "@/utils/formSchemas";
+import { formatRut } from "@/utils/rutFormat";
 
 /** Formatea un Date como "DD/MM/AAAA" para mostrarlo en el input. */
 function formatBirthDate(date: Date): string {
@@ -45,46 +58,60 @@ export default function RegisterScreen() {
   const totalSteps = isCompletingProfile ? 2 : 3;
   const displayStep = isCompletingProfile ? step - 1 : step;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [apellidoPaterno, setApellidoPaterno] = useState("");
-  const [apellidoMaterno, setApellidoMaterno] = useState("");
-  const [rut, setRut] = useState("");
-  const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [telefono, setTelefono] = useState("");
-  const [calle, setCalle] = useState("");
-  const [numero, setNumero] = useState("");
-  const [regionId, setRegionId] = useState("");
-  const [comunaId, setComunaId] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const credentialsForm = useForm<RegisterCredentialsValues>({
+    resolver: zodResolver(registerCredentialsSchema),
+    defaultValues: { email: "", password: "", confirmPassword: "" },
+  });
+
+  const personalForm = useForm<RegisterPersonalValues>({
+    resolver: zodResolver(registerPersonalSchema),
+    defaultValues: {
+      rut: "",
+      nombre: "",
+      apellidoPaterno: "",
+      apellidoMaterno: "",
+      telefono: "",
+      birthDate: undefined as unknown as Date,
+    },
+  });
+
+  const addressForm = useForm<AddressFormValues>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: { regionId: "", comunaId: "", calle: "", numero: "" },
+  });
+
+  const regionId = addressForm.watch("regionId");
   const comunaOptions = regionId ? getComunasByRegion(regionId) : [];
+  const birthDate = personalForm.watch("birthDate");
+  const password = credentialsForm.watch("password");
 
   function handleChangeRegion(value: string) {
-    setRegionId(value);
-    setComunaId("");
+    addressForm.setValue("regionId", value);
+    addressForm.setValue("comunaId", "");
   }
 
   function onValueChangeBirthDate(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     setShowDatePicker(false);
-    setBirthDate(selectedDate);
+    personalForm.setValue("birthDate", selectedDate, { shouldValidate: true });
   }
 
   function onDismissBirthDate() {
     setShowDatePicker(false);
   }
 
-  async function registerAddress() {
-    const regionName = chileRegions.find((item) => item.id === regionId)?.name ?? "";
-    const comunaName = comunaOptions.find((item) => item.id === comunaId)?.name ?? "";
+  async function registerAddress(address: AddressFormValues) {
+    const regionName = chileRegions.find((item) => item.id === address.regionId)?.name ?? "";
+    const comunaName =
+      getComunasByRegion(address.regionId).find((item) => item.id === address.comunaId)?.name ??
+      "";
     try {
       await apiPost("/api/patients/me/addresses", {
-        calle: calle.trim(),
-        numero: numero.trim(),
+        calle: address.calle.trim(),
+        numero: address.numero.trim(),
         comuna: comunaName,
         region: regionName,
       });
@@ -93,88 +120,44 @@ export default function RegisterScreen() {
       const message =
         error instanceof ApiError ? error.message : "No se pudo registrar tu dirección.";
       Alert.alert("Error al registrar tu dirección", message, [
-        { text: "Reintentar", onPress: registerAddress },
+        { text: "Reintentar", onPress: () => registerAddress(address) },
         { text: "Cancelar", style: "cancel" },
       ]);
     }
   }
 
-  async function registerPatientProfile() {
+  async function registerPatientProfile(personal: RegisterPersonalValues, address: AddressFormValues) {
     try {
       await apiPost("/api/auth/register", {
-        rut: rut.trim(),
-        nombre: nombre.trim(),
-        apellidoPaterno: apellidoPaterno.trim(),
-        apellidoMaterno: apellidoMaterno.trim() || undefined,
-        fechaNacimiento: birthDate ? toIsoDate(birthDate) : null,
-        telefonoPrincipal: telefono.trim(),
+        rut: personal.rut.trim(),
+        nombre: personal.nombre.trim(),
+        apellidoPaterno: personal.apellidoPaterno.trim(),
+        apellidoMaterno: personal.apellidoMaterno.trim() || undefined,
+        fechaNacimiento: toIsoDate(personal.birthDate),
+        telefonoPrincipal: personal.telefono.trim(),
       });
       // La dirección se crea como paso propio (con su propio reintento): si
       // solo ella falla, no hay que reintentar la creación del paciente
       // (que no es idempotente y respondería 409 con el mismo RUT).
-      await registerAddress();
+      await registerAddress(address);
     } catch (error) {
       const message =
         error instanceof ApiError
           ? error.message
           : "No se pudo completar tu registro de paciente.";
       Alert.alert("Error al completar el registro", message, [
-        { text: "Reintentar", onPress: registerPatientProfile },
+        { text: "Reintentar", onPress: () => registerPatientProfile(personal, address) },
         { text: "Cancelar", style: "cancel" },
       ]);
     }
   }
 
-  function validateCredentialsFields(): boolean {
-    if (!email.trim() || !password) {
-      Alert.alert("Campos requeridos", "Correo y contraseña son obligatorios.");
-      return false;
-    }
-    if (password.length < 6) {
-      Alert.alert("Contraseña inválida", "La contraseña debe tener al menos 6 caracteres.");
-      return false;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert("Las contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
-      return false;
-    }
-    return true;
-  }
-
-  function validatePersonalFields(): boolean {
-    if (!nombre.trim() || !apellidoPaterno.trim() || !rut.trim() || !telefono.trim()) {
-      Alert.alert(
-        "Campos requeridos",
-        "RUT, nombre, apellido paterno y teléfono son obligatorios."
-      );
-      return false;
-    }
-    if (!birthDate) {
-      Alert.alert("Fecha requerida", "Selecciona tu fecha de nacimiento.");
-      return false;
-    }
-    return true;
-  }
-
-  function validateAddressFields(): boolean {
-    if (!regionId || !comunaId || !calle.trim() || !numero.trim()) {
-      Alert.alert(
-        "Campos requeridos",
-        "Región, comuna, calle y número son obligatorios."
-      );
-      return false;
-    }
-    return true;
-  }
-
   function handleNextFromCredentials() {
-    if (!validateCredentialsFields()) return;
-    setStep(2);
+    credentialsForm.handleSubmit(() => setStep(2))();
   }
 
   function handleNextFromPersonal() {
-    if (!validatePersonalFields()) return;
-    setStep(3);
+    personalForm.handleSubmit(() => setStep(3))();
   }
 
   function handleBackToCredentials() {
@@ -185,23 +168,28 @@ export default function RegisterScreen() {
     setStep(2);
   }
 
-  async function handleRegister() {
-    if (!validateAddressFields()) return;
+  async function handleRegister(address: AddressFormValues) {
+    const personal = personalForm.getValues();
 
     if (isCompletingProfile) {
       setLoading(true);
-      await registerPatientProfile();
+      await registerPatientProfile(personal, address);
       setLoading(false);
       return;
     }
 
+    const credentials = credentialsForm.getValues();
     setLoading(true);
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const { user } = await createUserWithEmailAndPassword(
+        auth,
+        credentials.email.trim(),
+        credentials.password
+      );
       await updateProfile(user, {
-        displayName: `${nombre.trim()} ${apellidoPaterno.trim()}`.trim(),
+        displayName: `${personal.nombre.trim()} ${personal.apellidoPaterno.trim()}`.trim(),
       });
-      await registerPatientProfile();
+      await registerPatientProfile(personal, address);
     } catch (error: any) {
       const messages: Record<string, string> = {
         "auth/email-already-in-use": "Ya existe una cuenta con ese correo.",
@@ -239,43 +227,65 @@ export default function RegisterScreen() {
       <View style={styles.form}>
         {step === 1 && (
           <>
-            <AppInput
-              label="Correo electrónico"
-              placeholder="correo@vitacare.cl"
-              icon="usuario"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <AppInput
-              label="Contraseña"
-              placeholder="••••••••"
-              secureTextEntry={!showPassword}
-              icon="medicamento"
-              value={password}
-              onChangeText={setPassword}
-              rightElement={
-                <PasswordVisibilityToggle
-                  visible={showPassword}
-                  onToggle={() => setShowPassword((prev) => !prev)}
+            <Controller
+              control={credentialsForm.control}
+              name="email"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Correo electrónico"
+                  placeholder="correo@vitacare.cl"
+                  icon="usuario"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  errorMessage={fieldState.error?.message}
                 />
-              }
+              )}
             />
-            <AppInput
-              label="Repetir contraseña"
-              placeholder="••••••••"
-              secureTextEntry={!showPassword}
-              icon="medicamento"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              rightElement={
-                <PasswordVisibilityToggle
-                  visible={showPassword}
-                  onToggle={() => setShowPassword((prev) => !prev)}
+            <Controller
+              control={credentialsForm.control}
+              name="password"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Contraseña"
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  icon="medicamento"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                  rightElement={
+                    <PasswordVisibilityToggle
+                      visible={showPassword}
+                      onToggle={() => setShowPassword((prev) => !prev)}
+                    />
+                  }
                 />
-              }
+              )}
+            />
+            <PasswordRequirementsChecklist password={password} />
+            <Controller
+              control={credentialsForm.control}
+              name="confirmPassword"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Repetir contraseña"
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  icon="medicamento"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                  rightElement={
+                    <PasswordVisibilityToggle
+                      visible={showPassword}
+                      onToggle={() => setShowPassword((prev) => !prev)}
+                    />
+                  }
+                />
+              )}
             />
 
             <AppButton title="Siguiente" onPress={handleNextFromCredentials} />
@@ -284,33 +294,61 @@ export default function RegisterScreen() {
 
         {step === 2 && (
           <>
-            <AppInput
-              label="RUT"
-              placeholder="12.345.678-9"
-              icon="md-del-usuario"
-              value={rut}
-              onChangeText={setRut}
+            <Controller
+              control={personalForm.control}
+              name="rut"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="RUT"
+                  placeholder="12.345.678-9"
+                  icon="md-del-usuario"
+                  value={field.value}
+                  onChangeText={(text) => field.onChange(formatRut(text))}
+                  maxLength={12}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppInput
-              label="Nombre"
-              placeholder="María Carolina"
-              icon="usuario"
-              value={nombre}
-              onChangeText={setNombre}
+            <Controller
+              control={personalForm.control}
+              name="nombre"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Nombre"
+                  placeholder="María Carolina"
+                  icon="usuario"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppInput
-              label="Apellido paterno"
-              placeholder="Pérez"
-              icon="usuario"
-              value={apellidoPaterno}
-              onChangeText={setApellidoPaterno}
+            <Controller
+              control={personalForm.control}
+              name="apellidoPaterno"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Apellido paterno"
+                  placeholder="Pérez"
+                  icon="usuario"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppInput
-              label="Apellido materno"
-              placeholder="Gómez"
-              icon="usuario"
-              value={apellidoMaterno}
-              onChangeText={setApellidoMaterno}
+            <Controller
+              control={personalForm.control}
+              name="apellidoMaterno"
+              render={({ field }) => (
+                <AppInput
+                  label="Apellido materno"
+                  placeholder="Gómez"
+                  icon="usuario"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                />
+              )}
             />
             <Pressable onPress={() => setShowDatePicker(true)}>
               <View pointerEvents="none">
@@ -320,6 +358,7 @@ export default function RegisterScreen() {
                   icon="nota"
                   value={birthDate ? formatBirthDate(birthDate) : ""}
                   editable={false}
+                  errorMessage={personalForm.formState.errors.birthDate?.message}
                 />
               </View>
             </Pressable>
@@ -334,13 +373,18 @@ export default function RegisterScreen() {
                 themeVariant="light"
               />
             ) : null}
-            <AppInput
-              label="Teléfono"
-              placeholder="+56 9 8765 4321"
-              icon="usuario"
-              value={telefono}
-              onChangeText={setTelefono}
-              keyboardType="phone-pad"
+            <Controller
+              control={personalForm.control}
+              name="telefono"
+              render={({ field, fieldState }) => (
+                <PhoneInput
+                  label="Teléfono"
+                  icon="usuario"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
 
             <AppButton title="Siguiente" onPress={handleNextFromPersonal} />
@@ -352,34 +396,62 @@ export default function RegisterScreen() {
 
         {step === 3 && (
           <>
-            <AppPickerField
-              label="Región"
-              placeholder="Selecciona una región"
-              value={regionId}
-              onValueChange={handleChangeRegion}
-              options={chileRegions.map((item) => ({ label: item.name, value: item.id }))}
+            <Controller
+              control={addressForm.control}
+              name="regionId"
+              render={({ fieldState }) => (
+                <AppPickerField
+                  label="Región"
+                  placeholder="Selecciona una región"
+                  value={regionId}
+                  onValueChange={handleChangeRegion}
+                  options={chileRegions.map((item) => ({ label: item.name, value: item.id }))}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppPickerField
-              label="Comuna"
-              placeholder={regionId ? "Selecciona una comuna" : "Primero selecciona una región"}
-              value={comunaId}
-              onValueChange={setComunaId}
-              options={comunaOptions.map((item) => ({ label: item.name, value: item.id }))}
-              enabled={Boolean(regionId)}
+            <Controller
+              control={addressForm.control}
+              name="comunaId"
+              render={({ field, fieldState }) => (
+                <AppPickerField
+                  label="Comuna"
+                  placeholder={regionId ? "Selecciona una comuna" : "Primero selecciona una región"}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={comunaOptions.map((item) => ({ label: item.name, value: item.id }))}
+                  enabled={Boolean(regionId)}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppInput
-              label="Calle"
-              placeholder="Av. Los Carrera"
-              icon="nota"
-              value={calle}
-              onChangeText={setCalle}
+            <Controller
+              control={addressForm.control}
+              name="calle"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Calle"
+                  placeholder="Av. Los Carrera"
+                  icon="nota"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
-            <AppInput
-              label="Número"
-              placeholder="1234, Depto. 56"
-              icon="nota"
-              value={numero}
-              onChangeText={setNumero}
+            <Controller
+              control={addressForm.control}
+              name="numero"
+              render={({ field, fieldState }) => (
+                <AppInput
+                  label="Número"
+                  placeholder="1234, Depto. 56"
+                  icon="nota"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  errorMessage={fieldState.error?.message}
+                />
+              )}
             />
 
             <AppButton
@@ -390,7 +462,7 @@ export default function RegisterScreen() {
                     ? "Completar registro"
                     : "Registrarse"
               }
-              onPress={handleRegister}
+              onPress={addressForm.handleSubmit(handleRegister)}
               disabled={loading}
             />
             <AppButton

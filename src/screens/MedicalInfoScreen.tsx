@@ -228,12 +228,17 @@ export default function MedicalInfoScreen() {
             }
           />
           <InfoRow label="Fecha de nacimiento" value={patient?.fechaNacimiento ?? "-"} />
+          <InfoRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
+          <InfoRow
+            label="Teléfono secundario"
+            value={patient?.telefonoSecundario ?? "Sin registrar"}
+          />
         </InfoCard>
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Contacto y dirección</Text>
+          <Text style={styles.sectionTitle}>Dirección</Text>
           <Pressable
             style={styles.editButton}
             onPress={() => router.push("/edit-address")}
@@ -244,11 +249,6 @@ export default function MedicalInfoScreen() {
           </Pressable>
         </View>
         <InfoCard>
-          <InfoRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
-          <InfoRow
-            label="Teléfono secundario"
-            value={patient?.telefonoSecundario ?? "Sin registrar"}
-          />
           <InfoRow label="Calle" value={address?.calle ?? "Sin dirección registrada"} />
           <InfoRow label="Número" value={address?.numero ?? "-"} />
           <InfoRow label="Comuna" value={address?.comuna ?? "-"} />
@@ -306,6 +306,12 @@ export default function MedicalInfoScreen() {
           <InfoRow label="Total registrados" value={String(medications.length)} />
         </InfoCard>
       </View>
+
+      <AppButton
+        title="Cambiar contraseña"
+        variant="outline"
+        onPress={() => router.push("/change-password")}
+      />
 
       <AppButton
         title={deleteAccountMutation.isPending ? "Eliminando..." : "Eliminar cuenta"}

@@ -1,6 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -14,6 +16,7 @@ import { ApiError, apiGet, apiPost, apiPut } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import { addressSchema, type AddressFormValues } from "@/utils/formSchemas";
 
 /** Espejo de AddressDto del BFF. */
 type AddressRecord = {
@@ -39,35 +42,41 @@ export default function EditAddressScreen() {
   });
   const address = addressesQuery.data?.[0] ?? null;
 
-  const [regionId, setRegionId] = useState("");
-  const [comunaId, setComunaId] = useState("");
-  const [calle, setCalle] = useState("");
-  const [numero, setNumero] = useState("");
-  const [initialized, setInitialized] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+  } = useForm<AddressFormValues>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: { regionId: "", comunaId: "", calle: "", numero: "" },
+  });
+
+  const regionId = watch("regionId");
+  const comunaOptions = regionId ? getComunasByRegion(regionId) : [];
 
   // Precarga el formulario con la dirección actual apenas llega (los datos guardados
   // son nombres, no códigos, así que se buscan los ids correspondientes por nombre).
   useEffect(() => {
-    if (initialized || !address) return;
+    if (!address) return;
 
     const matchedRegion = chileRegions.find((item) => item.name === address.region);
-    if (matchedRegion) {
-      setRegionId(matchedRegion.id);
-      const matchedComuna = getComunasByRegion(matchedRegion.id).find(
-        (item) => item.name === address.comuna
-      );
-      if (matchedComuna) setComunaId(matchedComuna.id);
-    }
-    setCalle(address.calle);
-    setNumero(address.numero);
-    setInitialized(true);
-  }, [address, initialized]);
+    const matchedComuna = matchedRegion
+      ? getComunasByRegion(matchedRegion.id).find((item) => item.name === address.comuna)
+      : undefined;
 
-  const comunaOptions = regionId ? getComunasByRegion(regionId) : [];
+    reset({
+      regionId: matchedRegion?.id ?? "",
+      comunaId: matchedComuna?.id ?? "",
+      calle: address.calle,
+      numero: address.numero,
+    });
+  }, [address, reset]);
 
   function handleChangeRegion(value: string) {
-    setRegionId(value);
-    setComunaId("");
+    setValue("regionId", value, { shouldValidate: true });
+    setValue("comunaId", "");
   }
 
   const saveMutation = useMutation({
@@ -88,18 +97,14 @@ export default function EditAddressScreen() {
     },
   });
 
-  function handleSave() {
-    if (!regionId || !comunaId || !calle.trim() || !numero.trim()) {
-      Alert.alert("Campos requeridos", "Región, comuna, calle y número son obligatorios.");
-      return;
-    }
-
-    const regionName = chileRegions.find((item) => item.id === regionId)?.name ?? "";
-    const comunaName = comunaOptions.find((item) => item.id === comunaId)?.name ?? "";
+  function onSubmit(values: AddressFormValues) {
+    const regionName = chileRegions.find((item) => item.id === values.regionId)?.name ?? "";
+    const comunaName =
+      getComunasByRegion(values.regionId).find((item) => item.id === values.comunaId)?.name ?? "";
 
     saveMutation.mutate({
-      calle: calle.trim(),
-      numero: numero.trim(),
+      calle: values.calle.trim(),
+      numero: values.numero.trim(),
       comuna: comunaName,
       region: regionName,
     });
@@ -123,28 +128,68 @@ export default function EditAddressScreen() {
       </View>
 
       <View style={styles.card}>
-        <AppPickerField
-          label="Región"
-          placeholder="Selecciona una región"
-          value={regionId}
-          onValueChange={handleChangeRegion}
-          options={chileRegions.map((item) => ({ label: item.name, value: item.id }))}
+        <Controller
+          control={control}
+          name="regionId"
+          render={({ fieldState }) => (
+            <AppPickerField
+              label="Región"
+              placeholder="Selecciona una región"
+              value={regionId}
+              onValueChange={handleChangeRegion}
+              options={chileRegions.map((item) => ({ label: item.name, value: item.id }))}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppPickerField
-          label="Comuna"
-          placeholder={regionId ? "Selecciona una comuna" : "Primero selecciona una región"}
-          value={comunaId}
-          onValueChange={setComunaId}
-          options={comunaOptions.map((item) => ({ label: item.name, value: item.id }))}
-          enabled={Boolean(regionId)}
+        <Controller
+          control={control}
+          name="comunaId"
+          render={({ field, fieldState }) => (
+            <AppPickerField
+              label="Comuna"
+              placeholder={regionId ? "Selecciona una comuna" : "Primero selecciona una región"}
+              value={field.value}
+              onValueChange={field.onChange}
+              options={comunaOptions.map((item) => ({ label: item.name, value: item.id }))}
+              enabled={Boolean(regionId)}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
-        <AppInput label="Calle" placeholder="Av. Los Carrera" icon="nota" value={calle} onChangeText={setCalle} />
-        <AppInput label="Número" placeholder="1234, Depto. 56" icon="nota" value={numero} onChangeText={setNumero} />
+        <Controller
+          control={control}
+          name="calle"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Calle"
+              placeholder="Av. Los Carrera"
+              icon="nota"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="numero"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Número"
+              placeholder="1234, Depto. 56"
+              icon="nota"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
+        />
       </View>
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar dirección"}
-        onPress={handleSave}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>

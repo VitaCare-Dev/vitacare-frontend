@@ -1,6 +1,7 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
@@ -14,7 +15,7 @@ import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import type { GlucosePeriod } from "@/types";
-import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
+import { glucoseSchema, type GlucoseFormValues } from "@/utils/formSchemas";
 
 /** Mapea el período en español de la UI al enum PeriodoGlucosa del backend. */
 const PERIOD_TO_BACKEND: Record<GlucosePeriod, string> = {
@@ -28,9 +29,19 @@ export default function GlucoseScreen() {
   const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [glucosa, setGlucosa] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState<GlucosePeriod | null>(null);
-  const [notas, setNotas] = useState("");
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<GlucoseFormValues>({
+    resolver: zodResolver(glucoseSchema),
+    defaultValues: { glucosa: "", periodo: "", notas: "" },
+  });
+
+  const selectedPeriod = watch("periodo") as GlucosePeriod | "";
 
   const saveMutation = useMutation({
     mutationFn: (payload: { glucosa: number; periodo: string; notas?: string }) =>
@@ -43,36 +54,21 @@ export default function GlucoseScreen() {
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       const message =
         error instanceof ApiError ? error.message : "No se pudo registrar la glucosa.";
       Alert.alert("Error", message, [
-        { text: "Reintentar", onPress: handleSave },
+        { text: "Reintentar", onPress: () => saveMutation.mutate(variables) },
         { text: "Cancelar", style: "cancel" },
       ]);
     },
   });
 
-  function handleSave() {
-    const glucosaValue = Number(glucosa);
-    if (!glucosa.trim() || Number.isNaN(glucosaValue)) {
-      Alert.alert("Valor inválido", "Ingresa un valor numérico de glucosa.");
-      return;
-    }
-    const rangeError = validateRange(glucosaValue, MEASUREMENT_RANGES.glucosa);
-    if (rangeError) {
-      Alert.alert("Valor fuera de rango", rangeError);
-      return;
-    }
-    if (!selectedPeriod) {
-      Alert.alert("Período requerido", "Selecciona el período de la medición.");
-      return;
-    }
-
+  function onSubmit(values: GlucoseFormValues) {
     saveMutation.mutate({
-      glucosa: glucosaValue,
-      periodo: PERIOD_TO_BACKEND[selectedPeriod],
-      notas: notas.trim() || undefined,
+      glucosa: Number(values.glucosa),
+      periodo: PERIOD_TO_BACKEND[values.periodo as GlucosePeriod],
+      notas: values.notas.trim() || undefined,
     });
   }
 
@@ -87,13 +83,20 @@ export default function GlucoseScreen() {
       </View>
 
       <View style={styles.card}>
-        <AppInput
-          label="Valor glucosa"
-          placeholder="98"
-          keyboardType="numeric"
-          icon="glucosa"
-          value={glucosa}
-          onChangeText={setGlucosa}
+        <Controller
+          control={control}
+          name="glucosa"
+          render={({ field, fieldState }) => (
+            <AppInput
+              label="Valor glucosa"
+              placeholder="98"
+              keyboardType="numeric"
+              icon="glucosa"
+              value={field.value}
+              onChangeText={field.onChange}
+              errorMessage={fieldState.error?.message}
+            />
+          )}
         />
 
         <View style={styles.periodSection}>
@@ -102,7 +105,7 @@ export default function GlucoseScreen() {
             return (
               <Pressable
                 key={item.period}
-                onPress={() => setSelectedPeriod(item.period)}
+                onPress={() => setValue("periodo", item.period, { shouldValidate: true })}
                 style={[styles.periodCard, selected && styles.periodActive]}
               >
                 <View style={styles.periodHeader}>
@@ -116,22 +119,29 @@ export default function GlucoseScreen() {
               </Pressable>
             );
           })}
+          {errors.periodo ? <Text style={styles.errorText}>{errors.periodo.message}</Text> : null}
         </View>
 
-        <AppInput
-          label="Notas (opcional)"
-          placeholder="Agrega una observación breve"
-          icon="nota"
-          value={notas}
-          onChangeText={setNotas}
-          multiline
-          numberOfLines={3}
+        <Controller
+          control={control}
+          name="notas"
+          render={({ field }) => (
+            <AppInput
+              label="Notas (opcional)"
+              placeholder="Agrega una observación breve"
+              icon="nota"
+              value={field.value}
+              onChangeText={field.onChange}
+              multiline
+              numberOfLines={3}
+            />
+          )}
         />
       </View>
 
       <AppButton
         title={saveMutation.isPending ? "Guardando..." : "Guardar"}
-        onPress={handleSave}
+        onPress={handleSubmit(onSubmit)}
         disabled={saveMutation.isPending}
       />
     </ScreenContainer>
@@ -191,6 +201,11 @@ function createStyles(theme: VitaCareThemeType) {
   },
   periodDescription: {
     color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
+  },
+  errorText: {
+    color: "#B54444",
     fontSize: theme.typography.small,
     fontFamily: theme.typography.fontFamily,
   },

@@ -17,11 +17,13 @@ type AppInputProps = Readonly<
     icon?: IconName;
     /** Elemento pegado al borde derecho del input, dentro del mismo recuadro (ej. un botón "Mostrar contraseña"). */
     rightElement?: ReactNode;
+    /** Mensaje de error (ej. de react-hook-form) mostrado bajo el input, con el borde en rojo. */
+    errorMessage?: string;
   }
 >;
 
 export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
-  { label, icon, rightElement, style, ...props },
+  { label, icon, rightElement, errorMessage, style, ...props },
   ref,
 ) {
   const theme = useTheme();
@@ -29,7 +31,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, errorMessage && styles.inputContainerError]}>
         {icon ? <IconImage name={icon} size={18} style={styles.icon} /> : null}
         <TextInput
           ref={ref}
@@ -39,6 +41,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
         />
         {rightElement}
       </View>
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
     </View>
   );
 });
@@ -64,6 +67,9 @@ function createStyles(theme: VitaCareThemeType) {
     paddingHorizontal: theme.spacing.md,
     minHeight: 54,
   },
+  inputContainerError: {
+    borderColor: "#B54444",
+  },
   icon: {
     marginRight: theme.spacing.sm,
   },
@@ -73,6 +79,11 @@ function createStyles(theme: VitaCareThemeType) {
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
     paddingVertical: theme.spacing.sm,
+  },
+  errorText: {
+    color: "#B54444",
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
 }
