@@ -39,9 +39,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@react-native/jest-preset": "^0.85.3",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^12.9.0",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~56.0.4",
+    "jest": "^29.7.0",
+    "jest-expo": "^56.0.5",
+    "react-test-renderer": "^19.2.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -51,7 +58,31 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/android/",
+      "/ios/"
+    ],
+    "moduleNameMapper": {
+      "^test-renderer$": "react-test-renderer",
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
+      "!src/app/**",
+      "!src/config/firebase.ts",
+      "!src/config/queryClient.ts",
+      "!src/types/**"
+    ]
   },
   "private": true
 }
