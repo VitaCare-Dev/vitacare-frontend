@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { Alert, RefreshControl } from "react-native";
 
 import { apiGet } from "@/services/apiClient";
 import ProfileScreen from "@/screens/ProfileScreen";
@@ -121,5 +121,17 @@ describe("ProfileScreen", () => {
 
     fireEvent.press(screen.getByText("Cerrar sesión"));
     expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it("refetches patient data when the user pulls to refresh", async () => {
+    mockApi();
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

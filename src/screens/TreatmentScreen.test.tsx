@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { Alert, RefreshControl } from "react-native";
 
 import { apiDelete, apiGet, apiPatch } from "@/services/apiClient";
 import * as notifications from "@/services/notifications";
@@ -128,5 +128,19 @@ describe("TreatmentScreen", () => {
 
     fireEvent.press(screen.getByText("Enviar notificación de prueba (10s)"));
     await waitFor(() => expect(mockScheduleTest).toHaveBeenCalled());
+  });
+
+  it("refetches medications when the user pulls to refresh", async () => {
+    mockApiGet.mockResolvedValue([]);
+    renderWithProviders(<TreatmentScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("No hay medicamentos registrados")).toBeTruthy()
+    );
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

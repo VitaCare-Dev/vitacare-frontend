@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { RefreshControl } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import {
   getComunas,
@@ -126,5 +127,16 @@ describe("PrestadoresScreen", () => {
       pathname: "/provider-detail",
       params: { providerId: "prestador-1" },
     });
+  });
+
+  it("reloads the provider catalog when the user pulls to refresh", async () => {
+    renderWithProviders(<PrestadoresScreen />);
+    await waitFor(() => expect(screen.getByText("Dra. Camila Rojas")).toBeTruthy());
+
+    const callsBeforeRefresh = mockGetPrestadores.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockGetPrestadores.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

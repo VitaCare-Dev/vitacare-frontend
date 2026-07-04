@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { Alert, RefreshControl } from "react-native";
 
 import { apiDelete, apiGet } from "@/services/apiClient";
 import MedicalInfoScreen from "@/screens/MedicalInfoScreen";
@@ -190,5 +190,17 @@ describe("MedicalInfoScreen", () => {
     await waitFor(() =>
       expect(screen.getByText("Contraseña incorrecta. Intenta de nuevo.")).toBeTruthy()
     );
+  });
+
+  it("refetches all sections when the user pulls to refresh", async () => {
+    mockApi();
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("12.345.678-9")).toBeTruthy());
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

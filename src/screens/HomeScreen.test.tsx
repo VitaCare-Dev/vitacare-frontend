@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { RefreshControl } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { apiGet } from "@/services/apiClient";
 import HomeScreen from "@/screens/HomeScreen";
@@ -151,5 +152,17 @@ describe("HomeScreen", () => {
 
     fireEvent.press(screen.getByText("Consultar prestadores"));
     expect(mockPush).toHaveBeenCalledWith("/providers");
+  });
+
+  it("refetches all data when the user pulls to refresh", async () => {
+    mockApi({ patient: { nombre: "María" } });
+    renderWithProviders(<HomeScreen />);
+    await waitFor(() => expect(screen.getByText("¡Hola, María!")).toBeTruthy());
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

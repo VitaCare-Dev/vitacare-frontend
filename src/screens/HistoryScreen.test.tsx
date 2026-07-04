@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { RefreshControl } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { apiGet } from "@/services/apiClient";
 import HistoryScreen from "@/screens/HistoryScreen";
@@ -102,5 +103,19 @@ describe("HistoryScreen", () => {
     await waitFor(() => expect(screen.getByText("100 mg/dL")).toBeTruthy());
     const values = screen.getAllByText(/mg\/dL/);
     expect(values[0].props.children[0]).toBe(100);
+  });
+
+  it("refetches all measurements when the user pulls to refresh", async () => {
+    mockApiGet.mockResolvedValue([]);
+    renderWithProviders(<HistoryScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("Aún no tienes controles registrados")).toBeTruthy()
+    );
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });

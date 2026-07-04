@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { RefreshControl } from "react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { apiGet, apiPut } from "@/services/apiClient";
 import AlertsRecommendationsScreen from "@/screens/AlertsRecommendationsScreen";
@@ -107,5 +108,19 @@ describe("AlertsRecommendationsScreen", () => {
       ).toBeTruthy()
     );
     expect(screen.queryByText(/Error 500/)).toBeNull();
+  });
+
+  it("refetches alerts and recommendations when the user pulls to refresh", async () => {
+    mockApiGet.mockResolvedValue([]);
+    renderWithProviders(<AlertsRecommendationsScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("No tienes alertas registradas.")).toBeTruthy()
+    );
+
+    const callsBeforeRefresh = mockApiGet.mock.calls.length;
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
   });
 });
