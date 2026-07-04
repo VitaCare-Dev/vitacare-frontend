@@ -2,11 +2,13 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/theme/ThemeContext";
 
 export function AppNavigator() {
   const auth = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const theme = useTheme();
 
   useEffect(() => {
     if (auth.status === "loading") return;
@@ -34,7 +36,7 @@ export function AppNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#F8FAF8" },
+        contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Screen name="(auth)" />

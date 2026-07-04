@@ -8,7 +8,8 @@ import { TrendBarChart, type TrendPoint } from "@/components/TrendBarChart";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import { MEASUREMENT_RANGES } from "@/utils/measurementRanges";
 
 export type MeasurementMetric = "glucosa" | "temperatura" | "peso" | "presion" | "colesterolTotal";
@@ -58,6 +59,8 @@ function toPoints<T extends { fechaHora: string }>(
 }
 
 export default function MeasurementTrendScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { metric: metricParam } = useLocalSearchParams<{ metric: string }>();
   const metric: MeasurementMetric =
     metricParam && metricParam in METRIC_CONFIG ? (metricParam as MeasurementMetric) : "glucosa";
@@ -109,7 +112,7 @@ export default function MeasurementTrendScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       ) : points.length < 2 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Aún no hay suficientes datos</Text>
@@ -126,7 +129,7 @@ export default function MeasurementTrendScreen() {
               <Text style={styles.seriesLabel}>Diastólica</Text>
               <TrendBarChart
                 points={diastolicPoints}
-                color={VitaCareTheme.colors.secondary}
+                color={theme.colors.secondary}
                 range={MEASUREMENT_RANGES.presionDiastolica}
               />
             </>
@@ -139,57 +142,59 @@ export default function MeasurementTrendScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
   emptyCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    gap: VitaCareTheme.spacing.xs,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
+    ...theme.shadow.card,
   },
   emptyTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   emptyText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   chartCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+    ...theme.shadow.card,
   },
   seriesLabel: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
 });
+}

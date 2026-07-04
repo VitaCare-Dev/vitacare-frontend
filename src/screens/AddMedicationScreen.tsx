@@ -17,7 +17,8 @@ import {
   scheduleMedicationReminder,
 } from "@/services/notifications";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type MedicationPayload = {
   nombreMedicamento: string;
@@ -42,6 +43,8 @@ function toIsoDate(date: Date): string {
 }
 
 export default function AddMedicationScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [medicationName, setMedicationName] = useState("");
@@ -162,7 +165,7 @@ export default function AddMedicationScreen() {
               setErrorMessage("");
             }}
             onDismiss={() => setShowStartPicker(false)}
-            accentColor={VitaCareTheme.colors.primary}
+            accentColor={theme.colors.primary}
             themeVariant="light"
           />
         ) : null}
@@ -193,7 +196,7 @@ export default function AddMedicationScreen() {
               setEndDate(selectedDate);
             }}
             onDismiss={() => setShowEndPicker(false)}
-            accentColor={VitaCareTheme.colors.primary}
+            accentColor={theme.colors.primary}
             themeVariant="light"
           />
         ) : null}
@@ -211,40 +214,42 @@ export default function AddMedicationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   card: {
-    gap: VitaCareTheme.spacing.md,
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    ...theme.shadow.card,
   },
   link: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "600",
   },
   error: {
     color: "#B54444",
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
 });
+}

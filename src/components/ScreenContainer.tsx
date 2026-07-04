@@ -8,7 +8,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type ScreenContainerProps = Readonly<{
   children: ReactNode;
@@ -23,6 +24,8 @@ export function ScreenContainer({
   contentStyle,
   style,
 }: Readonly<ScreenContainerProps>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   if (!scrollable) {
     return (
       <SafeAreaView style={[styles.safeArea, style]}>
@@ -49,19 +52,21 @@ export function ScreenContainer({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: VitaCareTheme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: VitaCareTheme.spacing.lg,
-    paddingTop: VitaCareTheme.spacing.lg,
-    paddingBottom: VitaCareTheme.spacing.xxl,
-    gap: VitaCareTheme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
+    gap: theme.spacing.lg,
   },
 });
+}

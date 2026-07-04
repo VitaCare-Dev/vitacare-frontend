@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
 
 import { auth } from "@/config/firebase";
 
@@ -12,7 +12,8 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme, useThemeMode } from "@/theme/ThemeContext";
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -42,6 +43,9 @@ type DiseaseRecord = {
 };
 
 export default function ProfileScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  const { mode, toggleTheme } = useThemeMode();
   const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
@@ -79,7 +83,7 @@ export default function ProfileScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader />
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       </ScreenContainer>
     );
   }
@@ -126,6 +130,23 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      <View style={styles.card}>
+        <View style={styles.preferenceRow}>
+          <View style={styles.preferenceTextBlock}>
+            <Text style={styles.blockTitle}>Tema oscuro</Text>
+            <Text style={styles.diseaseItem}>
+              {mode === "dark" ? "Activado" : "Desactivado"}
+            </Text>
+          </View>
+          <Switch
+            value={mode === "dark"}
+            onValueChange={toggleTheme}
+            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            thumbColor={theme.colors.surface}
+          />
+        </View>
+      </View>
+
       <AppButton
         title="Ver información médica completa"
         icon="md-del-usuario"
@@ -153,6 +174,8 @@ function DetailRow({
   label,
   value,
 }: Readonly<{ label: string; value: string }>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -161,72 +184,82 @@ function DetailRow({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
   header: {
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   avatarWrap: {
     width: 110,
     height: 110,
     borderRadius: 55,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    backgroundColor: VitaCareTheme.colors.surface,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     justifyContent: "center",
     alignItems: "center",
-    ...VitaCareTheme.shadow.card,
+    ...theme.shadow.card,
   },
   name: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 24,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   contact: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   card: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+    ...theme.shadow.card,
   },
   detailRow: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   detailLabel: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   detailValue: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   diseaseBlock: {
-    gap: VitaCareTheme.spacing.xs,
-    paddingTop: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.sm,
+  },
+  preferenceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  preferenceTextBlock: {
+    gap: theme.spacing.xs,
   },
   blockTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   diseaseItem: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

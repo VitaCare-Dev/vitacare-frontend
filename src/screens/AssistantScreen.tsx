@@ -18,7 +18,8 @@ import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ApiError, apiPost } from "@/services/apiClient";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type ChatBubble = {
   id: string;
@@ -40,6 +41,8 @@ function stripUsageInfo(respuesta: string): string {
 }
 
 export default function AssistantScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<ChatBubble[]>([
     {
@@ -134,7 +137,7 @@ export default function AssistantScreen() {
           ))}
           {sendMutation.isPending ? (
             <View style={styles.assistantBubble}>
-              <ActivityIndicator color={VitaCareTheme.colors.secondary} />
+              <ActivityIndicator color={theme.colors.secondary} />
             </View>
           ) : null}
         </ScrollView>
@@ -162,32 +165,33 @@ export default function AssistantScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   screenContent: {
-    gap: VitaCareTheme.spacing.md,
-    paddingBottom: VitaCareTheme.spacing.md,
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
   },
   flex: {
     flex: 1,
   },
   header: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   chatArea: {
-    gap: VitaCareTheme.spacing.sm,
-    paddingVertical: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
   },
   assistantBubble: {
     alignSelf: "flex-start",
     maxWidth: "82%",
-    backgroundColor: VitaCareTheme.colors.surfaceAlt,
-    borderRadius: VitaCareTheme.radius.md,
-    padding: VitaCareTheme.spacing.md,
+    backgroundColor: theme.colors.surfaceAlt,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
     gap: 4,
     borderWidth: 1,
     borderColor: "#B6DDD2",
@@ -195,43 +199,43 @@ const styles = StyleSheet.create({
   userBubble: {
     alignSelf: "flex-end",
     maxWidth: "82%",
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.md,
-    padding: VitaCareTheme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
     gap: 4,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
+    borderColor: theme.colors.border,
   },
   bubbleText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   composer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
-    backgroundColor: VitaCareTheme.colors.surface,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    borderRadius: VitaCareTheme.radius.lg,
-    padding: VitaCareTheme.spacing.sm,
-    marginTop: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    ...theme.shadow.card,
   },
   input: {
     flex: 1,
     minHeight: 48,
-    paddingHorizontal: VitaCareTheme.spacing.sm,
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    paddingHorizontal: theme.spacing.sm,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: VitaCareTheme.colors.secondary,
+    backgroundColor: theme.colors.secondary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -239,3 +243,4 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+}

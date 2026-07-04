@@ -16,7 +16,8 @@ import { auth } from "@/config/firebase";
 import { refreshAuthProfile, useAuth } from "@/context/AuthContext";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
 import { ApiError, apiPost } from "@/services/apiClient";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 /** Formatea un Date como "DD/MM/AAAA" para mostrarlo en el input. */
 function formatBirthDate(date: Date): string {
@@ -35,6 +36,8 @@ function toIsoDate(date: Date): string {
 type Step = 1 | 2 | 3;
 
 export default function RegisterScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const authState = useAuth();
   const isCompletingProfile = authState.status === "authenticated";
   // Quien está completando perfil ya tiene cuenta de Firebase: se salta el paso de credenciales.
@@ -327,7 +330,7 @@ export default function RegisterScreen() {
                 maximumDate={new Date()}
                 onValueChange={onValueChangeBirthDate}
                 onDismiss={onDismissBirthDate}
-                accentColor={VitaCareTheme.colors.primary}
+                accentColor={theme.colors.primary}
                 themeVariant="light"
               />
             ) : null}
@@ -403,23 +406,25 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 28,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   form: {
-    gap: VitaCareTheme.spacing.md,
-    paddingTop: VitaCareTheme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.lg,
   },
 });
+}

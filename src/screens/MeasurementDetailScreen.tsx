@@ -8,7 +8,8 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 /** Campos comunes a los 4 DTOs de medición del BFF. */
 type MeasurementBase = {
@@ -40,6 +41,8 @@ function formatDateTime(fechaHora: string): string {
 }
 
 export default function MeasurementDetailScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { idControl } = useLocalSearchParams<{ idControl?: string }>();
@@ -132,7 +135,7 @@ export default function MeasurementDetailScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader showBackButton title="Detalle del control" />
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       </ScreenContainer>
     );
   }
@@ -227,6 +230,8 @@ function DetailCard({
   onDelete?: () => void;
   deleting?: boolean;
 }>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -246,6 +251,8 @@ function DetailCard({
 }
 
 function DetailRow({ label, value }: Readonly<{ label: string; value: string }>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -254,37 +261,38 @@ function DetailRow({ label, value }: Readonly<{ label: string; value: string }>)
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   date: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   card: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+    ...theme.shadow.card,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   cardTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   detailRow: {
@@ -292,49 +300,50 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   detailLabel: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   detailValue: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   notesText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   deleteButton: {
     alignSelf: "flex-start",
-    paddingTop: VitaCareTheme.spacing.xs,
+    paddingTop: theme.spacing.xs,
   },
   deleteButtonText: {
     color: "#B54444",
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   emptyCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    gap: VitaCareTheme.spacing.xs,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
+    ...theme.shadow.card,
   },
   emptyTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   emptyText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

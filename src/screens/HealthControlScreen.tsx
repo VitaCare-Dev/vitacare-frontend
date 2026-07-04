@@ -5,10 +5,13 @@ import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { healthControlOptions } from "@/data/mockData";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import type { HealthControlOption } from "@/types";
 
 export default function HealthControlScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
 
   const resolveRoute = (key: HealthControlOption["key"]) => {
@@ -59,41 +62,42 @@ export default function HealthControlScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   formCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+    ...theme.shadow.card,
   },
   optionsSection: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   optionCard: {
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.md,
-    padding: VitaCareTheme.spacing.md,
-    borderRadius: VitaCareTheme.radius.md,
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    backgroundColor: VitaCareTheme.colors.background,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
   },
   optionIcon: {
     width: 28,
@@ -105,14 +109,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   optionTitle: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   optionDesc: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

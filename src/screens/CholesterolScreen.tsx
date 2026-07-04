@@ -9,7 +9,8 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
 
 type LipidsPayload = {
@@ -21,6 +22,8 @@ type LipidsPayload = {
 };
 
 export default function CholesterolScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [cholesterolTotal, setCholesterolTotal] = useState("");
@@ -177,69 +180,71 @@ export default function CholesterolScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
-    marginBottom: VitaCareTheme.spacing.md,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   errorContainer: {
     backgroundColor: "#fee",
-    borderRadius: VitaCareTheme.radius.md,
-    padding: VitaCareTheme.spacing.md,
-    marginBottom: VitaCareTheme.spacing.md,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     borderLeftWidth: 4,
     borderLeftColor: "#f44336",
   },
   errorText: {
     color: "#c62828",
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   formCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.md,
-    marginBottom: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    ...theme.shadow.card,
   },
   sectionLabel: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 14,
     fontWeight: "600",
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
   },
   infoCard: {
     backgroundColor: "#f0f7ff",
-    borderRadius: VitaCareTheme.radius.md,
-    padding: VitaCareTheme.spacing.md,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: VitaCareTheme.colors.primary,
+    borderLeftColor: theme.colors.primary,
   },
   infoLabel: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 13,
     fontWeight: "600",
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    marginBottom: VitaCareTheme.spacing.xs,
+    fontFamily: theme.typography.fontFamily,
+    marginBottom: theme.spacing.xs,
   },
   infoText: {
-    color: VitaCareTheme.colors.text,
+    color: theme.colors.text,
     fontSize: 12,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     lineHeight: 18,
   },
 });
+}

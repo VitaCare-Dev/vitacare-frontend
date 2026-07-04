@@ -11,7 +11,8 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { glucosePeriods } from "@/data/mockData";
 import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import type { GlucosePeriod } from "@/types";
 import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
 
@@ -23,6 +24,8 @@ const PERIOD_TO_BACKEND: Record<GlucosePeriod, string> = {
 };
 
 export default function GlucoseScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [glucosa, setGlucosa] = useState("");
@@ -135,59 +138,61 @@ export default function GlucoseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   card: {
-    gap: VitaCareTheme.spacing.md,
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    ...theme.shadow.card,
   },
   periodSection: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   periodCard: {
-    borderRadius: VitaCareTheme.radius.md,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    backgroundColor: VitaCareTheme.colors.background,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.xs,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
   },
   periodActive: {
-    backgroundColor: VitaCareTheme.colors.surfaceAlt,
-    borderColor: VitaCareTheme.colors.primary,
+    backgroundColor: theme.colors.surfaceAlt,
+    borderColor: theme.colors.primary,
   },
   periodHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   periodTitle: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   periodDescription: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

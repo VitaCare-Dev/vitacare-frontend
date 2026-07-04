@@ -2,7 +2,8 @@ import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type TabIconProps = Readonly<{
   name: Parameters<typeof IconImage>[0]["name"];
@@ -16,6 +17,8 @@ function TabIcon({ name, focused }: TabIconProps) {
 }
 
 function CenterTabIcon() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.centerButton}>
       <IconImage name="agregar" tone="white" size={24} />
@@ -34,13 +37,16 @@ function renderCenterTabIcon() {
 }
 
 export default function TabsLayout() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: VitaCareTheme.colors.primary,
-        tabBarInactiveTintColor: VitaCareTheme.colors.primary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.primary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.label,
       }}
@@ -84,29 +90,31 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    height: 82,
-    borderTopWidth: 0,
-    backgroundColor: VitaCareTheme.colors.surface,
-    paddingTop: VitaCareTheme.spacing.sm,
-    paddingBottom: VitaCareTheme.spacing.md,
-    paddingHorizontal: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
-  },
-  label: {
-    fontSize: 11,
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    marginBottom: 2,
-  },
-  centerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: VitaCareTheme.colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: -10,
-    ...VitaCareTheme.shadow.button,
-  },
-});
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
+    tabBar: {
+      height: 82,
+      borderTopWidth: 0,
+      backgroundColor: theme.colors.surface,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      ...theme.shadow.card,
+    },
+    label: {
+      fontSize: 11,
+      fontFamily: theme.typography.fontFamily,
+      marginBottom: 2,
+    },
+    centerButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: theme.colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: -10,
+      ...theme.shadow.button,
+    },
+  });
+}

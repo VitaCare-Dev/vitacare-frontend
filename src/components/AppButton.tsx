@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage, IconName } from "@/components/IconImage";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type AppButtonProps = Readonly<{
   title: string;
@@ -15,6 +16,8 @@ type AppButtonProps = Readonly<{
 }>;
 
 export function AppButton(props: AppButtonProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {
     title,
     onPress,
@@ -53,11 +56,12 @@ export function AppButton(props: AppButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   button: {
-    borderRadius: VitaCareTheme.radius.md,
-    paddingVertical: VitaCareTheme.spacing.md,
-    paddingHorizontal: VitaCareTheme.spacing.lg,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
     minHeight: 52,
     justifyContent: "center",
   },
@@ -65,35 +69,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   text: {
-    color: VitaCareTheme.colors.surface,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   primary: {
-    backgroundColor: VitaCareTheme.colors.primary,
-    ...VitaCareTheme.shadow.button,
+    backgroundColor: theme.colors.primary,
+    ...theme.shadow.button,
   },
   secondary: {
-    backgroundColor: VitaCareTheme.colors.secondary,
-    ...VitaCareTheme.shadow.button,
+    backgroundColor: theme.colors.secondary,
+    ...theme.shadow.button,
   },
   outline: {
-    backgroundColor: VitaCareTheme.colors.surface,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   outlineText: {
-    color: VitaCareTheme.colors.primary,
+    color: theme.colors.primary,
   },
   ghost: {
     backgroundColor: "transparent",
   },
   danger: {
-    backgroundColor: VitaCareTheme.colors.surface,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: "#B54444",
   },
@@ -108,3 +112,4 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+}

@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 export type TrendPoint = {
   label: string;
@@ -24,13 +25,15 @@ const MIN_BAR_RATIO = 0.15;
 
 /** Gráfico de barras simple (sin dependencias nativas) para visualizar una serie de valores en el tiempo. */
 export function TrendBarChart({ points, color, range }: TrendBarChartProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   if (points.length === 0) return null;
 
   const values = points.map((point) => point.value);
   const maxValue = range?.max ?? Math.max(...values);
   const minValue = range?.min ?? Math.min(...values);
   const span = maxValue - minValue || 1;
-  const barColor = color ?? VitaCareTheme.colors.primary;
+  const barColor = color ?? theme.colors.primary;
 
   return (
     <ScrollView
@@ -60,39 +63,41 @@ export function TrendBarChart({ points, color, range }: TrendBarChartProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   track: {
     alignItems: "flex-end",
-    gap: VitaCareTheme.spacing.sm,
-    paddingHorizontal: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
   },
   column: {
     alignItems: "center",
     width: 36,
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   valueLabel: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 11,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   barTrack: {
     height: CHART_HEIGHT,
     width: 18,
     justifyContent: "flex-end",
-    backgroundColor: VitaCareTheme.colors.background,
-    borderRadius: VitaCareTheme.radius.sm,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.sm,
     overflow: "hidden",
   },
   bar: {
     width: "100%",
-    borderTopLeftRadius: VitaCareTheme.radius.sm,
-    borderTopRightRadius: VitaCareTheme.radius.sm,
+    borderTopLeftRadius: theme.radius.sm,
+    borderTopRightRadius: theme.radius.sm,
   },
   dateLabel: {
-    color: VitaCareTheme.colors.textMuted,
+    color: theme.colors.textMuted,
     fontSize: 10,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

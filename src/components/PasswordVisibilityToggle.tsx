@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type PasswordVisibilityToggleProps = Readonly<{
   visible: boolean;
@@ -9,6 +10,8 @@ type PasswordVisibilityToggleProps = Readonly<{
 }>;
 
 export function PasswordVisibilityToggle({ visible, onToggle }: PasswordVisibilityToggleProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <Pressable onPress={onToggle} hitSlop={8} style={styles.badge}>
       <IconImage name={visible ? "cerrar-ojo" : "ojo"} size={16} style={styles.icon} />
@@ -16,14 +19,15 @@ export function PasswordVisibilityToggle({ visible, onToggle }: PasswordVisibili
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   badge: {
     alignSelf: "stretch",
     width: 44,
-    marginRight: -VitaCareTheme.spacing.md,
-    borderTopRightRadius: VitaCareTheme.radius.md,
-    borderBottomRightRadius: VitaCareTheme.radius.md,
-    backgroundColor: VitaCareTheme.colors.primary,
+    marginRight: -theme.spacing.md,
+    borderTopRightRadius: theme.radius.md,
+    borderBottomRightRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -31,3 +35,4 @@ const styles = StyleSheet.create({
     tintColor: "#FFFFFF",
   },
 });
+}

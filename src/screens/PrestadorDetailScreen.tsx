@@ -7,10 +7,13 @@ import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { getPrestadorById } from "@/services/prestadoresApi";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import type { Prestador } from "@/types/prestador";
 
 export default function PrestadorDetailScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { providerId } = useLocalSearchParams<{ providerId?: string }>();
   const [prestador, setPrestador] = useState<Prestador | null>(null);
@@ -129,6 +132,8 @@ export default function PrestadorDetailScreen() {
 function DetailCard(
   props: Readonly<{ title: string; children: React.ReactNode }>,
 ) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{props.title}</Text>
@@ -138,6 +143,8 @@ function DetailCard(
 }
 
 function DetailRow(props: Readonly<{ label: string; value: string }>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{props.label}</Text>
@@ -149,6 +156,8 @@ function DetailRow(props: Readonly<{ label: string; value: string }>) {
 function StatusBadge(
   props: Readonly<{ estado: Prestador["estadoValidacion"] }>,
 ) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { estado } = props;
   const badgeStyle =
     estado === "Validado"
@@ -170,10 +179,11 @@ function StatusBadge(
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   content: {
-    gap: VitaCareTheme.spacing.lg,
-    paddingBottom: VitaCareTheme.spacing.xxxl,
+    gap: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxxl,
   },
   centeredState: {
     flex: 1,
@@ -181,22 +191,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   centeredText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   headerCard: {
-    gap: VitaCareTheme.spacing.md,
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    ...theme.shadow.card,
   },
   headerRow: {
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.md,
+    gap: theme.spacing.md,
     alignItems: "center",
   },
   headerTextWrap: {
@@ -204,89 +214,90 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   name: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   specialty: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   card: {
-    gap: VitaCareTheme.spacing.sm,
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    ...theme.shadow.card,
   },
   cardTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   detailRow: {
-    gap: VitaCareTheme.spacing.xs,
-    paddingTop: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.xs,
   },
   detailLabel: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   detailValue: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   noticeCard: {
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.sm,
-    backgroundColor: VitaCareTheme.colors.surfaceSoft,
-    borderRadius: VitaCareTheme.radius.md,
-    padding: VitaCareTheme.spacing.md,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: VitaCareTheme.colors.primary,
+    borderLeftColor: theme.colors.primary,
   },
   noticeText: {
     flex: 1,
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     lineHeight: 20,
   },
   badge: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    paddingHorizontal: VitaCareTheme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
   },
   badgeText: {
     fontSize: 11,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   validatedBadge: {
-    backgroundColor: VitaCareTheme.colors.success,
+    backgroundColor: theme.colors.success,
   },
   validatedBadgeText: {
-    color: VitaCareTheme.colors.primary,
+    color: theme.colors.primary,
   },
   pendingBadge: {
-    backgroundColor: VitaCareTheme.colors.warning,
+    backgroundColor: theme.colors.warning,
   },
   pendingBadgeText: {
-    color: VitaCareTheme.colors.warningStrong,
+    color: theme.colors.warningStrong,
   },
   notFoundBadge: {
-    backgroundColor: VitaCareTheme.colors.error,
+    backgroundColor: theme.colors.error,
   },
   notFoundBadgeText: {
     color: "#B54444",
   },
 });
+}

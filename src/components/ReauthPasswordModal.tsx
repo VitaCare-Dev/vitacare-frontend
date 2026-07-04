@@ -3,7 +3,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type ReauthPasswordModalProps = Readonly<{
   visible: boolean;
@@ -25,6 +26,8 @@ export function ReauthPasswordModal({
   onConfirm,
   onCancel,
 }: ReauthPasswordModalProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [password, setPassword] = useState("");
 
   function handleCancel() {
@@ -72,45 +75,47 @@ export function ReauthPasswordModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "center",
-    padding: VitaCareTheme.spacing.lg,
+    padding: theme.spacing.lg,
   },
   card: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
-    padding: VitaCareTheme.spacing.lg,
-    gap: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    ...theme.shadow.card,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   error: {
     color: "#B54444",
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   cancelButton: {
     alignItems: "center",
-    paddingVertical: VitaCareTheme.spacing.xs,
+    paddingVertical: theme.spacing.xs,
   },
   cancelText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "600",
   },
 });
+}

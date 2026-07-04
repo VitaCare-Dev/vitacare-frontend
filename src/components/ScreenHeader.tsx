@@ -2,7 +2,8 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage, type IconName } from "@/components/IconImage";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type ScreenHeaderProps = Readonly<{
   title?: string;
@@ -19,6 +20,8 @@ export function ScreenHeader({
   rightIcon,
   onRightPress,
 }: ScreenHeaderProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
 
   const handleBackPress = () => {
@@ -56,15 +59,16 @@ export function ScreenHeader({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: VitaCareTheme.spacing.md,
-    paddingVertical: VitaCareTheme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: VitaCareTheme.colors.border,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 44,
@@ -74,7 +78,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 24,
-    color: VitaCareTheme.colors.primary,
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   rightButton: {
@@ -84,12 +88,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 18,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   spacer: {
     width: 44,
   },
 });
+}

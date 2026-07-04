@@ -9,9 +9,12 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { auth } from "@/config/firebase";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 export default function LoginScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,44 +102,46 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   centered: {
     alignItems: "center",
-    gap: VitaCareTheme.spacing.md,
-    paddingTop: VitaCareTheme.spacing.xl,
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.xl,
   },
   tagline: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontStyle: "italic",
   },
   form: {
-    marginTop: VitaCareTheme.spacing.xl,
-    gap: VitaCareTheme.spacing.md,
+    marginTop: theme.spacing.xl,
+    gap: theme.spacing.md,
   },
   link: {
     textAlign: "right",
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "600",
   },
   footerRow: {
     flexDirection: "row",
     justifyContent: "center",
     flexWrap: "wrap",
-    marginTop: VitaCareTheme.spacing.lg,
+    marginTop: theme.spacing.lg,
   },
   footerText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   footerLink: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
 });
+}

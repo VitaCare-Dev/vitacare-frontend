@@ -8,7 +8,8 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet, apiPut } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 /** Espejo de AlertaDto del BFF. */
 type AlertRecord = {
@@ -33,6 +34,8 @@ function formatDate(value: string): string {
 }
 
 export default function AlertsRecommendationsScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
   const queryClient = useQueryClient();
@@ -88,7 +91,7 @@ export default function AlertsRecommendationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       ) : (
         <>
           <View style={styles.section}>
@@ -112,11 +115,19 @@ export default function AlertsRecommendationsScreen() {
                     </View>
                     <View style={styles.content}>
                       <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>{item.motivoAlerta}</Text>
-                        <Text style={styles.date}>{formatDate(item.fechaDisparo)}</Text>
+                        <Text style={[styles.cardTitle, styles.alertCardText]}>
+                          {item.motivoAlerta}
+                        </Text>
+                        <Text style={[styles.date, styles.alertCardMutedText]}>
+                          {formatDate(item.fechaDisparo)}
+                        </Text>
                       </View>
-                      <Text style={styles.detail}>{item.recomendacionIa}</Text>
-                      <Text style={styles.status}>{item.leida ? "Leída" : "No leída"}</Text>
+                      <Text style={[styles.detail, styles.alertCardText]}>
+                        {item.recomendacionIa}
+                      </Text>
+                      <Text style={[styles.status, styles.alertCardMutedText]}>
+                        {item.leida ? "Leída" : "No leída"}
+                      </Text>
                     </View>
                   </Pressable>
                 ))
@@ -164,60 +175,69 @@ export default function AlertsRecommendationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
   section: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   sectionTitle: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   list: {
-    gap: VitaCareTheme.spacing.md,
+    gap: theme.spacing.md,
   },
   emptyText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   errorText: {
     color: "#B54444",
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   card: {
-    borderRadius: VitaCareTheme.radius.lg,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    padding: VitaCareTheme.spacing.md,
+    padding: theme.spacing.md,
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.md,
+    gap: theme.spacing.md,
   },
   alertCard: {
     backgroundColor: "#FFF2D8",
     borderColor: "#F1C57D",
   },
+  // Colores fijos (no siguen el tema): el fondo de esta card es siempre
+  // claro (ámbar), así que el texto debe quedarse oscuro también en modo oscuro.
+  alertCardText: {
+    color: "#3A2E14",
+  },
+  alertCardMutedText: {
+    color: "#6B5A38",
+  },
   recommendationCard: {
-    backgroundColor: VitaCareTheme.colors.surfaceAlt,
+    backgroundColor: theme.colors.surfaceAlt,
     borderColor: "#C8E7DD",
   },
   iconWrap: {
@@ -226,34 +246,35 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   cardTitle: {
     flex: 1,
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   date: {
-    color: VitaCareTheme.colors.textMuted,
+    color: theme.colors.textMuted,
     fontSize: 12,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
   },
   detail: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   status: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 12,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
 });
+}

@@ -6,7 +6,8 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { refreshAuthProfile } from "@/context/AuthContext";
 import { ApiError, apiGet, apiPost } from "@/services/apiClient";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 /** Espejo de DiseaseDto del BFF. */
 type DiseaseOption = {
@@ -16,6 +17,8 @@ type DiseaseOption = {
 };
 
 export default function SelectDiseaseScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [diseases, setDiseases] = useState<DiseaseOption[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -68,7 +71,7 @@ export default function SelectDiseaseScreen() {
       </View>
 
       {loadingCatalog ? (
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       ) : (
         <View style={styles.list}>
           {diseases.map((disease) => {
@@ -98,53 +101,55 @@ export default function SelectDiseaseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 24,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
   list: {
-    gap: VitaCareTheme.spacing.md,
-    paddingTop: VitaCareTheme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.lg,
   },
   card: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 2,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.xs,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+    ...theme.shadow.card,
   },
   cardSelected: {
-    borderColor: VitaCareTheme.colors.primary,
-    backgroundColor: VitaCareTheme.colors.surfaceSoft,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSoft,
   },
   cardTitle: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   cardTitleSelected: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
   },
   cardDescription: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

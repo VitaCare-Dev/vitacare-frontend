@@ -1,7 +1,8 @@
 import { Picker } from "@react-native-picker/picker";
 import { StyleSheet, Text, View } from "react-native";
 
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 export type AppPickerOption = { label: string; value: string };
 
@@ -22,6 +23,8 @@ export function AppPickerField({
   options,
   enabled = true,
 }: AppPickerFieldProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
@@ -41,24 +44,26 @@ export function AppPickerField({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   wrapper: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   label: {
-    fontSize: VitaCareTheme.typography.small,
-    color: VitaCareTheme.colors.textMuted,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "600",
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    borderRadius: VitaCareTheme.radius.md,
-    backgroundColor: VitaCareTheme.colors.surface,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
     justifyContent: "center",
   },
   pickerDisabled: {
-    backgroundColor: VitaCareTheme.colors.background,
+    backgroundColor: theme.colors.background,
   },
 });
+}

@@ -1,7 +1,8 @@
 import { Image, Pressable, StyleSheet, View } from "react-native";
 
 import { IconImage, type IconName } from "@/components/IconImage";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 type BrandHeaderProps = Readonly<{
   logoStyle?: "horizontal" | "vertical";
@@ -14,6 +15,8 @@ export function BrandHeader({
   rightIcon,
   onRightPress,
 }: BrandHeaderProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const logoSource =
     logoStyle === "vertical"
       ? require("../../assets/images/logos/logo_principal_verde.png")
@@ -38,16 +41,17 @@ export function BrandHeader({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingBottom: VitaCareTheme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
   },
   verticalLayout: {
     justifyContent: "center",
-    paddingBottom: VitaCareTheme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
   },
   logo: {
     resizeMode: "contain",
@@ -59,3 +63,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+}

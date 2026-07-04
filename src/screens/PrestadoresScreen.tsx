@@ -20,10 +20,13 @@ import {
     getRegiones,
     searchPrestadores,
 } from "@/services/prestadoresApi";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import type { Prestador } from "@/types/prestador";
 
 export default function PrestadoresScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const [prestadores, setPrestadores] = useState<Prestador[]>([]);
   const [especialidades, setEspecialidades] = useState<string[]>([]);
@@ -201,7 +204,7 @@ export default function PrestadoresScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nombre o especialidad"
-            placeholderTextColor={VitaCareTheme.colors.textMuted}
+            placeholderTextColor={theme.colors.textMuted}
             value={searchText}
             onChangeText={(value) => {
               setSearchText(value);
@@ -274,6 +277,8 @@ type FilterSectionProps = {
 
 function FilterSection(props: Readonly<FilterSectionProps>) {
   const { label, options, selectedValue, emptyLabel, onSelect } = props;
+  const theme = useTheme();
+  const styles = createStyles(theme);
 
   return (
     <View style={styles.filterSection}>
@@ -321,180 +326,182 @@ function FilterSection(props: Readonly<FilterSectionProps>) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   content: {
-    gap: VitaCareTheme.spacing.lg,
-    paddingBottom: VitaCareTheme.spacing.xxxl,
+    gap: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxxl,
   },
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.heading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.heading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    paddingHorizontal: VitaCareTheme.spacing.md,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md,
     minHeight: 54,
   },
   searchIcon: {
-    marginRight: VitaCareTheme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    paddingVertical: VitaCareTheme.spacing.sm,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
+    paddingVertical: theme.spacing.sm,
   },
   filterSection: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   filterLabel: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   filterChipRow: {
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.sm,
-    paddingRight: VitaCareTheme.spacing.md,
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.md,
   },
   filterChip: {
-    paddingHorizontal: VitaCareTheme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: VitaCareTheme.colors.surface,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
+    borderColor: theme.colors.border,
   },
   filterChipActive: {
-    backgroundColor: VitaCareTheme.colors.primary,
-    borderColor: VitaCareTheme.colors.primary,
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   filterChipText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   filterChipTextActive: {
-    color: VitaCareTheme.colors.surface,
+    color: theme.colors.surface,
   },
   resultsSection: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   sectionTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   card: {
-    gap: VitaCareTheme.spacing.sm,
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    ...theme.shadow.card,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   cardTitleWrap: {
     flex: 1,
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   cardTitleTextWrap: {
     flex: 1,
     gap: 2,
   },
   cardTitle: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   cardSubtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   cardDetail: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   badge: {
     borderRadius: 999,
-    paddingHorizontal: VitaCareTheme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
   },
   badgeText: {
     fontSize: 11,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   validatedBadge: {
-    backgroundColor: VitaCareTheme.colors.success,
+    backgroundColor: theme.colors.success,
   },
   validatedBadgeText: {
-    color: VitaCareTheme.colors.primary,
+    color: theme.colors.primary,
   },
   pendingBadge: {
-    backgroundColor: VitaCareTheme.colors.warning,
+    backgroundColor: theme.colors.warning,
   },
   pendingBadgeText: {
-    color: VitaCareTheme.colors.warningStrong,
+    color: theme.colors.warningStrong,
   },
   notFoundBadge: {
-    backgroundColor: VitaCareTheme.colors.error,
+    backgroundColor: theme.colors.error,
   },
   notFoundBadgeText: {
     color: "#B54444",
   },
   emptyCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    gap: VitaCareTheme.spacing.xs,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
   },
   emptyTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   helperText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   errorText: {
     color: "#B54444",
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
 });
+}

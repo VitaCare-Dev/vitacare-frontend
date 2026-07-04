@@ -4,22 +4,11 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { TrendBarChart, type TrendPoint } from "@/components/TrendBarChart";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
-import { MEASUREMENT_RANGES } from "@/utils/measurementRanges";
-
-const TREND_WINDOW_DAYS = 30;
-
-/** Fecha corta "dd/mm" para las etiquetas del gráfico de tendencia. */
-function formatShortDate(fechaHora: string): string {
-  const date = new Date(fechaHora);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}`;
-}
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 
 /** Campos comunes a los 4 DTOs de medición del BFF. */
 type MeasurementBase = {
@@ -58,6 +47,8 @@ function formatTime(fechaHora: string): string {
 }
 
 export default function HistoryScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
@@ -97,12 +88,6 @@ export default function HistoryScreen() {
     (a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
   );
 
-  const trendCutoff = Date.now() - TREND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-  const glucoseTrendPoints: TrendPoint[] = (glucoseQuery.data ?? [])
-    .filter((item) => new Date(item.fechaHora).getTime() >= trendCutoff)
-    .sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime())
-    .map((item) => ({ label: formatShortDate(item.fechaHora), value: item.glucosa }));
-
   return (
     <ScreenContainer scrollable>
       <View style={styles.header}>
@@ -110,15 +95,8 @@ export default function HistoryScreen() {
         <Text style={styles.subtitle}>Resumen de controles recientes.</Text>
       </View>
 
-      {!loading && glucoseTrendPoints.length > 1 && (
-        <View style={styles.trendCard}>
-          <Text style={styles.trendTitle}>Tendencia de glucosa (mg/dL, últimos 30 días)</Text>
-          <TrendBarChart points={glucoseTrendPoints} range={MEASUREMENT_RANGES.glucosa} />
-        </View>
-      )}
-
       {loading ? (
-        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
       ) : entries.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Aún no tienes controles registrados</Text>
@@ -196,115 +174,102 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   header: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    color: VitaCareTheme.colors.secondary,
+    color: theme.colors.secondary,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   subtitle: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   loader: {
-    marginTop: VitaCareTheme.spacing.xl,
-  },
-  trendCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
-    borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
-  },
-  trendTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
-    fontWeight: "700",
+    marginTop: theme.spacing.xl,
   },
   emptyCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    gap: VitaCareTheme.spacing.xs,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
+    ...theme.shadow.card,
   },
   emptyTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   emptyText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   list: {
-    gap: VitaCareTheme.spacing.md,
+    gap: theme.spacing.md,
   },
   card: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.sm,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+    ...theme.shadow.card,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
   date: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   time: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   metricRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   metricLabel: {
     flex: 1,
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   metricValue: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   noteBlock: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: VitaCareTheme.spacing.sm,
-    paddingTop: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: VitaCareTheme.colors.border,
+    borderTopColor: theme.colors.border,
   },
   noteText: {
     flex: 1,
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}

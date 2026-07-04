@@ -19,7 +19,8 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
-import { VitaCareTheme } from "@/theme/theme";
+import type { VitaCareThemeType } from "@/theme/theme";
+import { useTheme } from "@/theme/ThemeContext";
 import type { MeasurementMetric } from "@/screens/MeasurementTrendScreen";
 
 /** Espejo de PatientDto del BFF. */
@@ -98,11 +99,13 @@ async function getLatestOrNull<T>(path: string): Promise<T | null> {
 }
 
 export default function HomeScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
   const { width: windowWidth } = useWindowDimensions();
-  const cardWidth = windowWidth - VitaCareTheme.spacing.lg * 2;
+  const cardWidth = windowWidth - theme.spacing.lg * 2;
   const [activeMedicationPage, setActiveMedicationPage] = useState(0);
 
   const patientQuery = useQuery({
@@ -361,35 +364,36 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: VitaCareThemeType) {
+  return StyleSheet.create({
   ctaCard: {
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
-    backgroundColor: VitaCareTheme.colors.surfaceSoft,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.lg,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    ...theme.shadow.card,
   },
   ctaTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
     textAlign: "center",
   },
   ctaText: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     textAlign: "center",
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingBottom: VitaCareTheme.spacing.md,
+    paddingBottom: theme.spacing.md,
   },
   spacer: {
     flex: 1,
@@ -408,93 +412,93 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: VitaCareTheme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   greetingBlock: {
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   greeting: {
-    color: VitaCareTheme.colors.text,
+    color: theme.colors.text,
     fontSize: 26,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   message: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
   },
   section: {
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   sectionTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.subheading,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.secondary,
+    fontSize: theme.typography.subheading,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   nextMedicationCard: {
-    backgroundColor: VitaCareTheme.colors.surface,
-    borderRadius: VitaCareTheme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: VitaCareTheme.colors.border,
-    padding: VitaCareTheme.spacing.md,
-    gap: VitaCareTheme.spacing.xs,
-    ...VitaCareTheme.shadow.card,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+    ...theme.shadow.card,
   },
   nextMedicationHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   carouselScroll: {
-    marginVertical: -VitaCareTheme.spacing.lg,
+    marginVertical: -theme.spacing.lg,
   },
   carouselContent: {
-    paddingVertical: VitaCareTheme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
   },
   dotsRow: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: VitaCareTheme.spacing.xs,
-    paddingTop: VitaCareTheme.spacing.sm,
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.sm,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: VitaCareTheme.colors.border,
+    backgroundColor: theme.colors.border,
   },
   dotActive: {
-    backgroundColor: VitaCareTheme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   nextMedicationTime: {
-    color: VitaCareTheme.colors.primary,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.primary,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   nextMedicationTitle: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },
   nextMedicationDetail: {
-    color: VitaCareTheme.colors.textMuted,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   alertCard: {
     flexDirection: "row",
-    gap: VitaCareTheme.spacing.md,
-    padding: VitaCareTheme.spacing.md,
-    borderRadius: VitaCareTheme.radius.lg,
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
     backgroundColor: "#FFF1D9",
     borderWidth: 1,
     borderColor: "#E9C57B",
@@ -504,17 +508,20 @@ const styles = StyleSheet.create({
   },
   alertTextWrap: {
     flex: 1,
-    gap: VitaCareTheme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   alertTitle: {
-    color: VitaCareTheme.colors.secondary,
-    fontSize: VitaCareTheme.typography.body,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    // Color fijo (no sigue el tema): el fondo de esta card es siempre claro
+    // (ámbar), así que el texto debe quedarse oscuro también en modo oscuro.
+    color: "#3A2E14",
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
     fontWeight: "800",
   },
   alertText: {
-    color: VitaCareTheme.colors.text,
-    fontSize: VitaCareTheme.typography.small,
-    fontFamily: VitaCareTheme.typography.fontFamily,
+    color: "#4A3F2A",
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
 });
+}
