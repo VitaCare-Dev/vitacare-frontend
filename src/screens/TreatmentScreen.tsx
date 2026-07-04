@@ -34,6 +34,10 @@ export default function TreatmentScreen() {
   });
   const medications = medicationsQuery.data ?? [];
 
+  function handleRefresh() {
+    medicationsQuery.refetch();
+  }
+
   // Reconcilia los recordatorios locales con los medicamentos activos cada
   // vez que se abre esta pantalla (cubre el caso de que el dispositivo haya
   // perdido los recordatorios, ej. tras reinstalar la app).
@@ -103,7 +107,11 @@ export default function TreatmentScreen() {
   }
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer
+      scrollable
+      refreshing={medicationsQuery.isRefetching}
+      onRefresh={handleRefresh}
+    >
       <ScreenHeader
         showBackButton
         title="Tratamiento"

@@ -70,6 +70,14 @@ export default function HistoryScreen() {
   });
 
   const loading = glucoseQuery.isLoading || lipidsQuery.isLoading || vitalsQuery.isLoading;
+  const refreshing =
+    glucoseQuery.isRefetching || lipidsQuery.isRefetching || vitalsQuery.isRefetching;
+
+  function handleRefresh() {
+    glucoseQuery.refetch();
+    lipidsQuery.refetch();
+    vitalsQuery.refetch();
+  }
 
   const entriesByControl = new Map<number, HistoryEntry>();
   function upsert(base: MeasurementBase, patch: Partial<HistoryEntry>) {
@@ -89,7 +97,7 @@ export default function HistoryScreen() {
   );
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <View style={styles.header}>
         <Text style={styles.title}>Historial</Text>
         <Text style={styles.subtitle}>Resumen de controles recientes.</Text>

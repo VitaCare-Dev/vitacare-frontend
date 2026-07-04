@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -16,6 +17,9 @@ type ScreenContainerProps = Readonly<{
   scrollable?: boolean;
   contentStyle?: object;
   style?: object;
+  /** Si se entrega junto con onRefresh, habilita "tirar para actualizar" (solo aplica con scrollable). */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }>;
 
 export function ScreenContainer({
@@ -23,6 +27,8 @@ export function ScreenContainer({
   scrollable = true,
   contentStyle,
   style,
+  refreshing,
+  onRefresh,
 }: Readonly<ScreenContainerProps>) {
   const theme = useTheme();
   const styles = createStyles(theme);
@@ -44,6 +50,16 @@ export function ScreenContainer({
           contentContainerStyle={[styles.scrollContent, contentStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={Boolean(refreshing)}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.primary}
+                colors={[theme.colors.primary]}
+              />
+            ) : undefined
+          }
         >
           {children}
         </ScrollView>

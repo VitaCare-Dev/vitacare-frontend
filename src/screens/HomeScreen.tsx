@@ -150,6 +150,25 @@ export default function HomeScreen() {
     enabled,
   });
 
+  const refreshing =
+    patientQuery.isRefetching ||
+    historyQuery.isRefetching ||
+    glucoseQuery.isRefetching ||
+    vitalsQuery.isRefetching ||
+    lipidsQuery.isRefetching ||
+    activeMedicationQuery.isRefetching ||
+    unreadAlertsQuery.isRefetching;
+
+  function handleRefresh() {
+    patientQuery.refetch();
+    historyQuery.refetch();
+    glucoseQuery.refetch();
+    vitalsQuery.refetch();
+    lipidsQuery.refetch();
+    activeMedicationQuery.refetch();
+    unreadAlertsQuery.refetch();
+  }
+
   const patientName = patientQuery.data?.nombre ?? null;
   const hasMeasurements = historyQuery.data ? historyQuery.data.length > 0 : null;
   const latestGlucose = glucoseQuery.data ?? null;
@@ -208,7 +227,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <View style={styles.headerRow}>
         <View style={styles.spacer} />
         <Pressable

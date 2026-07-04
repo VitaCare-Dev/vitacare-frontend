@@ -37,6 +37,7 @@ export default function PrestadoresScreen() {
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedComuna, setSelectedComuna] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -87,6 +88,29 @@ export default function PrestadoresScreen() {
       isMounted = false;
     };
   }, []);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    setErrorMessage("");
+    try {
+      const [initialPrestadores, especialidadesData, regionesData, comunasData] =
+        await Promise.all([
+          getPrestadores(),
+          getEspecialidades(),
+          getRegiones(),
+          getComunas(),
+        ]);
+      setPrestadores(initialPrestadores);
+      setEspecialidades(especialidadesData);
+      setRegiones(regionesData);
+      setComunas(comunasData);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("No fue posible cargar los prestadores.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -187,7 +211,7 @@ export default function PrestadoresScreen() {
   );
 
   return (
-    <ScreenContainer>
+    <ScreenContainer refreshing={refreshing} onRefresh={handleRefresh}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}

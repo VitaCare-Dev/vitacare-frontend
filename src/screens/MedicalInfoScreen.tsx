@@ -101,11 +101,25 @@ export default function MedicalInfoScreen() {
     diseasesQuery.isLoading ||
     thresholdsQuery.isLoading ||
     medicationsQuery.isLoading;
+  const refreshing =
+    patientQuery.isRefetching ||
+    addressesQuery.isRefetching ||
+    diseasesQuery.isRefetching ||
+    thresholdsQuery.isRefetching ||
+    medicationsQuery.isRefetching;
   const patient = patientQuery.data ?? null;
   const address = addressesQuery.data?.[0] ?? null;
   const diseases = diseasesQuery.data ?? [];
   const thresholds = thresholdsQuery.data ?? null;
   const medications = medicationsQuery.data ?? [];
+
+  function handleRefresh() {
+    patientQuery.refetch();
+    addressesQuery.refetch();
+    diseasesQuery.refetch();
+    thresholdsQuery.refetch();
+    medicationsQuery.refetch();
+  }
 
   const activeMedications = medications.filter((item) => item.activo === 1);
 
@@ -202,7 +216,7 @@ export default function MedicalInfoScreen() {
   }
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <ScreenHeader showBackButton title="Información médica" />
 
       <View style={styles.section}>

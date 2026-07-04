@@ -68,9 +68,17 @@ export default function ProfileScreen() {
 
   const loading =
     patientQuery.isLoading || addressesQuery.isLoading || diseasesQuery.isLoading;
+  const refreshing =
+    patientQuery.isRefetching || addressesQuery.isRefetching || diseasesQuery.isRefetching;
   const patient = patientQuery.data ?? null;
   const address = addressesQuery.data?.[0] ?? null;
   const diseases = diseasesQuery.data ?? [];
+
+  function handleRefresh() {
+    patientQuery.refetch();
+    addressesQuery.refetch();
+    diseasesQuery.refetch();
+  }
 
   function handleLogout() {
     Alert.alert("Cerrar sesión", "¿Estás seguro que quieres salir?", [
@@ -89,7 +97,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <ScreenHeader />
       <View style={styles.header}>
         <View style={styles.avatarWrap}>

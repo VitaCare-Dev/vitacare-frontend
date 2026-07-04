@@ -68,6 +68,12 @@ export default function AlertsRecommendationsScreen() {
   const alerts = alertsQuery.data ?? [];
   const recommendations = recommendationsQuery.data ?? [];
   const loading = alertsQuery.isLoading || recommendationsQuery.isLoading;
+  const refreshing = alertsQuery.isRefetching || recommendationsQuery.isRefetching;
+
+  function handleRefresh() {
+    alertsQuery.refetch();
+    recommendationsQuery.refetch();
+  }
 
   // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se le
   // muestra un mensaje genérico, nunca el error crudo del backend.
@@ -81,7 +87,7 @@ export default function AlertsRecommendationsScreen() {
   }, [recommendationsQuery.error]);
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <ScreenHeader showBackButton title="Alertas" />
       <View style={styles.header}>
         <Text style={styles.title}>Alertas IA</Text>
