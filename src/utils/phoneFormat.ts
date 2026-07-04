@@ -10,8 +10,9 @@ export function formatChileanPhone(rawDigits: string): string {
   const part1 = digits.slice(0, 4);
   const part2 = digits.slice(4, 8);
 
-  let result = "+56 9";
-  if (part1) result += ` ${part1}`;
+  // part1 siempre tiene al menos 1 carácter aquí (ya se cortó arriba si
+  // digits estaba vacío), así que solo part2 puede faltar.
+  let result = `+56 9 ${part1}`;
   if (part2) result += ` ${part2}`;
   return result;
 }
