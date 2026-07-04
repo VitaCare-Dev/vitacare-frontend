@@ -4,10 +4,22 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { TrendBarChart, type TrendPoint } from "@/components/TrendBarChart";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
+import { MEASUREMENT_RANGES } from "@/utils/measurementRanges";
+
+const TREND_WINDOW_DAYS = 30;
+
+/** Fecha corta "dd/mm" para las etiquetas del gráfico de tendencia. */
+function formatShortDate(fechaHora: string): string {
+  const date = new Date(fechaHora);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}`;
+}
 
 /** Campos comunes a los 4 DTOs de medición del BFF. */
 type MeasurementBase = {
@@ -85,12 +97,25 @@ export default function HistoryScreen() {
     (a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
   );
 
+  const trendCutoff = Date.now() - TREND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  const glucoseTrendPoints: TrendPoint[] = (glucoseQuery.data ?? [])
+    .filter((item) => new Date(item.fechaHora).getTime() >= trendCutoff)
+    .sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime())
+    .map((item) => ({ label: formatShortDate(item.fechaHora), value: item.glucosa }));
+
   return (
     <ScreenContainer scrollable>
       <View style={styles.header}>
         <Text style={styles.title}>Historial</Text>
         <Text style={styles.subtitle}>Resumen de controles recientes.</Text>
       </View>
+
+      {!loading && glucoseTrendPoints.length > 1 && (
+        <View style={styles.trendCard}>
+          <Text style={styles.trendTitle}>Tendencia de glucosa (mg/dL, últimos 30 días)</Text>
+          <TrendBarChart points={glucoseTrendPoints} range={MEASUREMENT_RANGES.glucosa} />
+        </View>
+      )}
 
       {loading ? (
         <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
@@ -188,6 +213,21 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: VitaCareTheme.spacing.xl,
+  },
+  trendCard: {
+    backgroundColor: VitaCareTheme.colors.surface,
+    borderRadius: VitaCareTheme.radius.lg,
+    borderWidth: 1,
+    borderColor: VitaCareTheme.colors.border,
+    padding: VitaCareTheme.spacing.md,
+    gap: VitaCareTheme.spacing.sm,
+    ...VitaCareTheme.shadow.card,
+  },
+  trendTitle: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
   },
   emptyCard: {
     backgroundColor: VitaCareTheme.colors.surface,

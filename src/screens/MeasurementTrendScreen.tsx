@@ -1,0 +1,195 @@
+import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+
+import { ScreenContainer } from "@/components/ScreenContainer";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { TrendBarChart, type TrendPoint } from "@/components/TrendBarChart";
+import { useAuth } from "@/context/AuthContext";
+import { apiGet } from "@/services/apiClient";
+import { queryKeys } from "@/services/queryKeys";
+import { VitaCareTheme } from "@/theme/theme";
+import { MEASUREMENT_RANGES } from "@/utils/measurementRanges";
+
+export type MeasurementMetric = "glucosa" | "temperatura" | "peso" | "presion" | "colesterolTotal";
+
+type GlucoseRecord = { fechaHora: string; glucosa: number };
+type VitalsRecord = {
+  fechaHora: string;
+  temperatura: number;
+  peso: number;
+  presionSistolica: number | null;
+  presionDiastolica: number | null;
+};
+type LipidsRecord = { fechaHora: string; colesterolTotal: number };
+
+const METRIC_CONFIG: Record<MeasurementMetric, { title: string; unit: string }> = {
+  glucosa: { title: "Glucosa", unit: "mg/dL" },
+  temperatura: { title: "Temperatura", unit: "°C" },
+  peso: { title: "Peso", unit: "kg" },
+  presion: { title: "Presión arterial", unit: "mmHg" },
+  colesterolTotal: { title: "Colesterol total", unit: "mg/dL" },
+};
+
+/** Rangos fijos por métrica, para que el gráfico no exagere diferencias pequeñas. */
+const METRIC_RANGE: Record<Exclude<MeasurementMetric, "presion">, { min: number; max: number }> = {
+  glucosa: MEASUREMENT_RANGES.glucosa,
+  temperatura: MEASUREMENT_RANGES.temperatura,
+  peso: MEASUREMENT_RANGES.peso,
+  colesterolTotal: MEASUREMENT_RANGES.colesterolTotal,
+};
+
+function formatShortDate(fechaHora: string): string {
+  const date = new Date(fechaHora);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}`;
+}
+
+function toPoints<T extends { fechaHora: string }>(
+  data: T[] | undefined,
+  pick: (item: T) => number | null
+): TrendPoint[] {
+  return (data ?? [])
+    .slice()
+    .sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime())
+    .map((item) => ({ label: formatShortDate(item.fechaHora), value: pick(item) }))
+    .filter((point): point is TrendPoint => point.value != null);
+}
+
+export default function MeasurementTrendScreen() {
+  const { metric: metricParam } = useLocalSearchParams<{ metric: string }>();
+  const metric: MeasurementMetric =
+    metricParam && metricParam in METRIC_CONFIG ? (metricParam as MeasurementMetric) : "glucosa";
+  const config = METRIC_CONFIG[metric];
+
+  const authState = useAuth();
+  const enabled = authState.status === "authenticated";
+
+  const glucoseQuery = useQuery({
+    queryKey: queryKeys.glucoseList,
+    queryFn: () => apiGet<GlucoseRecord[]>("/api/measurements/glucose"),
+    enabled: enabled && metric === "glucosa",
+  });
+  const vitalsQuery = useQuery({
+    queryKey: queryKeys.vitalsList,
+    queryFn: () => apiGet<VitalsRecord[]>("/api/measurements/vitals"),
+    enabled: enabled && (metric === "temperatura" || metric === "peso" || metric === "presion"),
+  });
+  const lipidsQuery = useQuery({
+    queryKey: queryKeys.lipidsList,
+    queryFn: () => apiGet<LipidsRecord[]>("/api/measurements/lipids"),
+    enabled: enabled && metric === "colesterolTotal",
+  });
+
+  const loading = glucoseQuery.isLoading || vitalsQuery.isLoading || lipidsQuery.isLoading;
+
+  let points: TrendPoint[] = [];
+  let diastolicPoints: TrendPoint[] | null = null;
+
+  if (metric === "glucosa") {
+    points = toPoints(glucoseQuery.data, (item) => item.glucosa);
+  } else if (metric === "temperatura") {
+    points = toPoints(vitalsQuery.data, (item) => item.temperatura);
+  } else if (metric === "peso") {
+    points = toPoints(vitalsQuery.data, (item) => item.peso);
+  } else if (metric === "colesterolTotal") {
+    points = toPoints(lipidsQuery.data, (item) => item.colesterolTotal);
+  } else if (metric === "presion") {
+    points = toPoints(vitalsQuery.data, (item) => item.presionSistolica);
+    diastolicPoints = toPoints(vitalsQuery.data, (item) => item.presionDiastolica);
+  }
+
+  return (
+    <ScreenContainer scrollable>
+      <ScreenHeader showBackButton title={config.title} />
+      <View style={styles.header}>
+        <Text style={styles.title}>{config.title}</Text>
+        <Text style={styles.subtitle}>Evolución histórica ({config.unit}).</Text>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color={VitaCareTheme.colors.primary} style={styles.loader} />
+      ) : points.length < 2 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Aún no hay suficientes datos</Text>
+          <Text style={styles.emptyText}>
+            Registra al menos 2 mediciones de {config.title.toLowerCase()} para ver la tendencia.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.chartCard}>
+          {diastolicPoints && diastolicPoints.length > 1 ? (
+            <>
+              <Text style={styles.seriesLabel}>Sistólica</Text>
+              <TrendBarChart points={points} range={MEASUREMENT_RANGES.presionSistolica} />
+              <Text style={styles.seriesLabel}>Diastólica</Text>
+              <TrendBarChart
+                points={diastolicPoints}
+                color={VitaCareTheme.colors.secondary}
+                range={MEASUREMENT_RANGES.presionDiastolica}
+              />
+            </>
+          ) : (
+            <TrendBarChart points={points} range={METRIC_RANGE[metric as Exclude<MeasurementMetric, "presion">]} />
+          )}
+        </View>
+      )}
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    gap: VitaCareTheme.spacing.xs,
+  },
+  title: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: 26,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "800",
+  },
+  subtitle: {
+    color: VitaCareTheme.colors.textMuted,
+    fontSize: VitaCareTheme.typography.body,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+  },
+  loader: {
+    marginTop: VitaCareTheme.spacing.xl,
+  },
+  emptyCard: {
+    backgroundColor: VitaCareTheme.colors.surface,
+    borderRadius: VitaCareTheme.radius.lg,
+    borderWidth: 1,
+    borderColor: VitaCareTheme.colors.border,
+    padding: VitaCareTheme.spacing.lg,
+    gap: VitaCareTheme.spacing.xs,
+    ...VitaCareTheme.shadow.card,
+  },
+  emptyTitle: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: VitaCareTheme.typography.body,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "800",
+  },
+  emptyText: {
+    color: VitaCareTheme.colors.textMuted,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+  },
+  chartCard: {
+    backgroundColor: VitaCareTheme.colors.surface,
+    borderRadius: VitaCareTheme.radius.lg,
+    borderWidth: 1,
+    borderColor: VitaCareTheme.colors.border,
+    padding: VitaCareTheme.spacing.md,
+    gap: VitaCareTheme.spacing.sm,
+    ...VitaCareTheme.shadow.card,
+  },
+  seriesLabel: {
+    color: VitaCareTheme.colors.secondary,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
+  },
+});

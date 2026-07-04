@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage, IconName } from "@/components/IconImage";
 import { VitaCareTheme } from "@/theme/theme";
@@ -9,6 +9,7 @@ type HealthCardProps = Readonly<{
   unit: string;
   icon: IconName;
   note?: string;
+  onPress?: () => void;
 }>;
 
 export function HealthCard({
@@ -17,9 +18,10 @@ export function HealthCard({
   unit,
   icon,
   note,
+  onPress,
 }: Readonly<HealthCardProps>) {
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress} disabled={!onPress}>
       <View style={styles.textBlock}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value}</Text>
@@ -29,7 +31,7 @@ export function HealthCard({
       <View style={styles.iconWrap}>
         <IconImage name={icon} size={34} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 

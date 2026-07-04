@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
+import type { MeasurementMetric } from "@/screens/MeasurementTrendScreen";
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -74,6 +75,7 @@ type SummaryCard = {
   value: string;
   unit: string;
   icon: IconName;
+  metric: MeasurementMetric;
 };
 
 function formatFrequency(frequencyHours: number): string {
@@ -165,6 +167,7 @@ export default function HomeScreen() {
         value: `${latestVitals.presionSistolica}/${latestVitals.presionDiastolica}`,
         unit: "mmHg",
         icon: "presion",
+        metric: "presion",
       });
     }
     summaryCards.push({
@@ -172,8 +175,15 @@ export default function HomeScreen() {
       value: String(latestVitals.temperatura),
       unit: "°C",
       icon: "temperatura",
+      metric: "temperatura",
     });
-    summaryCards.push({ label: "Peso", value: String(latestVitals.peso), unit: "kg", icon: "peso" });
+    summaryCards.push({
+      label: "Peso",
+      value: String(latestVitals.peso),
+      unit: "kg",
+      icon: "peso",
+      metric: "peso",
+    });
   }
   if (latestGlucose) {
     summaryCards.push({
@@ -181,6 +191,7 @@ export default function HomeScreen() {
       value: String(latestGlucose.glucosa),
       unit: "mg/dL",
       icon: "glucosa",
+      metric: "glucosa",
     });
   }
   if (latestLipids) {
@@ -189,6 +200,7 @@ export default function HomeScreen() {
       value: String(latestLipids.colesterolTotal),
       unit: "mg/dL",
       icon: "corazon",
+      metric: "colesterolTotal",
     });
   }
 
@@ -234,6 +246,12 @@ export default function HomeScreen() {
                   value={item.value}
                   unit={item.unit}
                   icon={item.icon}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/measurement-trend",
+                      params: { metric: item.metric },
+                    })
+                  }
                 />
               ))}
             </View>
