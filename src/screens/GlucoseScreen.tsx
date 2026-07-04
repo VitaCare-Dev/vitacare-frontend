@@ -13,6 +13,7 @@ import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 import type { GlucosePeriod } from "@/types";
+import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
 
 /** Mapea el período en español de la UI al enum PeriodoGlucosa del backend. */
 const PERIOD_TO_BACKEND: Record<GlucosePeriod, string> = {
@@ -53,6 +54,11 @@ export default function GlucoseScreen() {
     const glucosaValue = Number(glucosa);
     if (!glucosa.trim() || Number.isNaN(glucosaValue)) {
       Alert.alert("Valor inválido", "Ingresa un valor numérico de glucosa.");
+      return;
+    }
+    const rangeError = validateRange(glucosaValue, MEASUREMENT_RANGES.glucosa);
+    if (rangeError) {
+      Alert.alert("Valor fuera de rango", rangeError);
       return;
     }
     if (!selectedPeriod) {

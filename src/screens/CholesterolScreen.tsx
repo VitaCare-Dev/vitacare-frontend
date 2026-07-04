@@ -10,6 +10,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
+import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
 
 type LipidsPayload = {
   colesterolTotal: number;
@@ -66,6 +67,16 @@ export default function CholesterolScreen() {
       [colesterolTotalValue, ldlValue, hdlValue, trigliceridosValue].some(Number.isNaN)
     ) {
       setErrorMessage("Por favor completa todos los campos requeridos con valores numéricos.");
+      return;
+    }
+
+    const rangeError =
+      validateRange(colesterolTotalValue, MEASUREMENT_RANGES.colesterolTotal) ??
+      validateRange(ldlValue, MEASUREMENT_RANGES.colesterolLDL) ??
+      validateRange(hdlValue, MEASUREMENT_RANGES.colesterolHDL) ??
+      validateRange(trigliceridosValue, MEASUREMENT_RANGES.trigliceridos);
+    if (rangeError) {
+      setErrorMessage(rangeError);
       return;
     }
     setErrorMessage("");

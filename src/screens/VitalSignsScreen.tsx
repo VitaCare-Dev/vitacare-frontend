@@ -10,6 +10,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { ApiError, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
+import { MEASUREMENT_RANGES, validateRange } from "@/utils/measurementRanges";
 
 type VitalsPayload = {
   presionSistolica?: number;
@@ -61,11 +62,26 @@ export default function VitalSignsScreen() {
       return;
     }
 
+    const vitalsRangeError =
+      validateRange(temperaturaValue, MEASUREMENT_RANGES.temperatura) ??
+      validateRange(pesoValue, MEASUREMENT_RANGES.peso);
+    if (vitalsRangeError) {
+      setErrorMessage(vitalsRangeError);
+      return;
+    }
+
     if (sistolica.trim() || diastolica.trim()) {
       const sistolicaValue = Number(sistolica);
       const diastolicaValue = Number(diastolica);
       if (!sistolica.trim() || !diastolica.trim() || Number.isNaN(sistolicaValue) || Number.isNaN(diastolicaValue)) {
         setErrorMessage("Si registras presión arterial, completa tanto la sistólica como la diastólica.");
+        return;
+      }
+      const presionRangeError =
+        validateRange(sistolicaValue, MEASUREMENT_RANGES.presionSistolica) ??
+        validateRange(diastolicaValue, MEASUREMENT_RANGES.presionDiastolica);
+      if (presionRangeError) {
+        setErrorMessage(presionRangeError);
         return;
       }
       setErrorMessage("");
