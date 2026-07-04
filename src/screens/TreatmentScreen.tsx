@@ -1,12 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MedicationCard, type MedicationRecord } from "@/components/MedicationCard";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { apiDelete, apiPatch, ApiError, apiGet } from "@/services/apiClient";
+import {
+  cancelMedicationReminder,
+  notificationsAvailable,
+  requestNotificationPermissions,
+  scheduleTestNotification,
+  syncMedicationReminders,
+} from "@/services/notifications";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
@@ -23,6 +31,17 @@ export default function TreatmentScreen() {
   });
   const medications = medicationsQuery.data ?? [];
 
+  // Reconcilia los recordatorios locales con los medicamentos activos cada
+  // vez que se abre esta pantalla (cubre el caso de que el dispositivo haya
+  // perdido los recordatorios, ej. tras reinstalar la app).
+  useEffect(() => {
+    if (!medicationsQuery.data) return;
+    const activeMedications = medicationsQuery.data.filter((item) => item.activo === 1);
+    requestNotificationPermissions().then((granted) => {
+      if (granted) syncMedicationReminders(activeMedications);
+    });
+  }, [medicationsQuery.data]);
+
   function invalidateMedications() {
     queryClient.invalidateQueries({ queryKey: queryKeys.medicationsAll });
     queryClient.invalidateQueries({ queryKey: queryKeys.medicationsActive });
@@ -30,7 +49,10 @@ export default function TreatmentScreen() {
 
   const deactivateMutation = useMutation({
     mutationFn: (id: number) => apiPatch(`/api/medications/${id}/deactivate`),
-    onSuccess: invalidateMedications,
+    onSuccess: (_data, id) => {
+      invalidateMedications();
+      cancelMedicationReminder(id);
+    },
     onError: (error) => {
       const message =
         error instanceof ApiError ? error.message : "No se pudo desactivar el medicamento.";
@@ -40,7 +62,10 @@ export default function TreatmentScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiDelete(`/api/medications/${id}`),
-    onSuccess: invalidateMedications,
+    onSuccess: (_data, id) => {
+      invalidateMedications();
+      cancelMedicationReminder(id);
+    },
     onError: (error) => {
       const message =
         error instanceof ApiError ? error.message : "No se pudo eliminar el medicamento.";
@@ -53,6 +78,25 @@ export default function TreatmentScreen() {
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => deleteMutation.mutate(id) },
     ]);
+  }
+
+  // TEMPORAL: solo para probar el flujo de notificaciones sin esperar horas.
+  // Quitar este botón antes de la entrega final.
+  async function handleTestNotification() {
+    if (!notificationsAvailable) {
+      Alert.alert(
+        "No disponible en Expo Go",
+        "Android quitó el soporte de notificaciones en Expo Go. Prueba con un development build (expo-dev-client)."
+      );
+      return;
+    }
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      Alert.alert("Permiso denegado", "Activa las notificaciones para esta app en el sistema.");
+      return;
+    }
+    await scheduleTestNotification();
+    Alert.alert("Programada", "Debería llegar en unos 10 segundos.");
   }
 
   return (
@@ -68,6 +112,9 @@ export default function TreatmentScreen() {
         <Text style={styles.subtitle}>
           Listado de medicamentos activos y su seguimiento.
         </Text>
+        <Pressable onPress={handleTestNotification}>
+          <Text style={styles.testLink}>Enviar notificación de prueba (10s)</Text>
+        </Pressable>
       </View>
 
       <View style={styles.list}>
@@ -109,6 +156,12 @@ const styles = StyleSheet.create({
     color: VitaCareTheme.colors.textMuted,
     fontSize: VitaCareTheme.typography.body,
     fontFamily: VitaCareTheme.typography.fontFamily,
+  },
+  testLink: {
+    color: VitaCareTheme.colors.primary,
+    fontSize: VitaCareTheme.typography.small,
+    fontFamily: VitaCareTheme.typography.fontFamily,
+    fontWeight: "700",
   },
   list: {
     gap: VitaCareTheme.spacing.md,

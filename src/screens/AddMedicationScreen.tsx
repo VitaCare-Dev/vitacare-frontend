@@ -8,9 +8,14 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
+import { type MedicationRecord } from "@/components/MedicationCard";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ApiError, apiPost } from "@/services/apiClient";
+import {
+  requestNotificationPermissions,
+  scheduleMedicationReminder,
+} from "@/services/notifications";
 import { queryKeys } from "@/services/queryKeys";
 import { VitaCareTheme } from "@/theme/theme";
 
@@ -49,10 +54,17 @@ export default function AddMedicationScreen() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const saveMutation = useMutation({
-    mutationFn: (payload: MedicationPayload) => apiPost("/api/medications", payload),
-    onSuccess: () => {
+    mutationFn: (payload: MedicationPayload) =>
+      apiPost<MedicationRecord>("/api/medications", payload),
+    onSuccess: async (createdMedication) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.medicationsAll });
       queryClient.invalidateQueries({ queryKey: queryKeys.medicationsActive });
+
+      const granted = await requestNotificationPermissions();
+      if (granted) {
+        await scheduleMedicationReminder(createdMedication);
+      }
+
       Alert.alert("Medicamento guardado", "El tratamiento se registró correctamente.", [
         { text: "Aceptar", onPress: () => router.back() },
       ]);
