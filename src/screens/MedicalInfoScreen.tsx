@@ -215,8 +215,6 @@ export default function MedicalInfoScreen() {
           </Pressable>
         </View>
         <InfoCard>
-          <InfoRow label="Paciente ID" value={String(patient?.idPaciente ?? "-")} />
-          <InfoRow label="Usuario ID" value={String(patient?.idUsuario ?? "-")} />
           <InfoRow label="RUT" value={patient?.rut ?? "-"} />
           <InfoRow
             label="Nombre completo"
