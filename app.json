@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "vitacare",
+    "name": "VitaCare",
     "slug": "vitacare",
+    "owner": "briam.carrascodev",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -47,6 +48,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6dc53bc8-c13d-4edb-be74-f37202ec508c"
+      }
     }
   }
 }
