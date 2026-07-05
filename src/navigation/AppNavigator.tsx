@@ -6,7 +6,10 @@ import { useTheme } from "@/theme/ThemeContext";
 
 export function AppNavigator() {
   const auth = useAuth();
-  const segments = useSegments();
+  // Cast a string[]: el tipo tupla exacto que infiere expo-router depende de
+  // .expo/types/router.d.ts (generado localmente por `expo start`/`prebuild`),
+  // que no existe en un checkout limpio de CI y rompe el acceso a segments[1].
+  const segments = useSegments() as string[];
   const router = useRouter();
   const theme = useTheme();
 
