@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiGet, apiPost } from "@/services/apiClient";
+import { apiGet, apiPost } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
@@ -56,10 +57,11 @@ export default function AddDiseaseScreen() {
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
+    // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se
+    // le muestra un mensaje genérico, nunca el error crudo del backend.
     onError: (error) => {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo agregar la enfermedad.";
-      Alert.alert("Error", message);
+      console.error("Error al agregar enfermedad:", error);
+      Alert.alert("Error", "No se pudo agregar la enfermedad.");
     },
   });
 
@@ -74,7 +76,14 @@ export default function AddDiseaseScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <View style={styles.list} testID="add-disease-skeleton">
+          {[1, 2, 3].map((key) => (
+            <View key={key} style={styles.card}>
+              <Skeleton width="60%" height={18} />
+              <Skeleton width="90%" height={14} />
+            </View>
+          ))}
+        </View>
       ) : availableDiseases.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Ya tienes todas las enfermedades del catálogo</Text>
@@ -124,9 +133,6 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
-  },
-  loader: {
-    marginTop: theme.spacing.xl,
   },
   list: {
     gap: theme.spacing.md,

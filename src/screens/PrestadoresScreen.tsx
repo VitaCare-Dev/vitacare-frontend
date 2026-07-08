@@ -12,6 +12,7 @@ import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
+import { InlineErrorNotice } from "@/components/InlineErrorNotice";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
     getComunas,
@@ -269,7 +270,11 @@ export default function PrestadoresScreen() {
             para acotar la lista.
           </Text>
           {errorMessage ? (
-            <Text style={styles.errorText}>{errorMessage}</Text>
+            <InlineErrorNotice
+              message={errorMessage}
+              onRetry={handleRefresh}
+              retrying={refreshing}
+            />
           ) : null}
           {isLoading ? (
             <Text style={styles.helperText}>Cargando prestadores...</Text>
@@ -520,12 +525,6 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.small,
     fontFamily: theme.typography.fontFamily,
-  },
-  errorText: {
-    color: "#B54444",
-    fontSize: theme.typography.small,
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: "700",
   },
 });
 }

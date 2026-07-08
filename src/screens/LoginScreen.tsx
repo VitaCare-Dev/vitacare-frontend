@@ -27,6 +27,7 @@ export default function LoginScreen() {
     handleSubmit,
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    mode: "onBlur",
     defaultValues: { email: "", password: "" },
   });
 

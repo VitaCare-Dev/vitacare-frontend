@@ -5,6 +5,11 @@ import { AppThemeProvider } from "@/theme/ThemeContext";
 
 jest.mock("@/config/firebase");
 
+const mockSignOut = jest.fn().mockResolvedValue(undefined);
+jest.mock("firebase/auth", () => ({
+  signOut: (...args: unknown[]) => mockSignOut(...args),
+}));
+
 const mockReplace = jest.fn();
 let mockSegments: string[] = [];
 jest.mock("expo-router", () => {
@@ -37,6 +42,7 @@ function renderNavigator() {
 describe("AppNavigator", () => {
   beforeEach(() => {
     mockReplace.mockClear();
+    mockSignOut.mockClear();
     mockSegments = [];
   });
 
@@ -61,17 +67,24 @@ describe("AppNavigator", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it("redirects to register when authenticated without a completed profile", () => {
-    mockAuthState = { status: "authenticated", hasProfile: false, hasDisease: false };
-    mockSegments = ["(tabs)"];
-    renderNavigator();
-    expect(mockReplace).toHaveBeenCalledWith("/register");
-  });
+  it(
+    "signs out and redirects to login when authenticated without a patient outside the " +
+      "register flow (real signup keeps the user on /register, so this only happens for an " +
+      "orphaned Firebase account created outside the app)",
+    () => {
+      mockAuthState = { status: "authenticated", hasProfile: false, hasDisease: false };
+      mockSegments = ["(tabs)"];
+      renderNavigator();
+      expect(mockSignOut).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
+    }
+  );
 
-  it("does not redirect to register when already on the register screen", () => {
+  it("does not sign out while the real signup flow is still on the register screen", () => {
     mockAuthState = { status: "authenticated", hasProfile: false, hasDisease: false };
     mockSegments = ["(auth)", "register"];
     renderNavigator();
+    expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
@@ -95,4 +108,27 @@ describe("AppNavigator", () => {
     renderNavigator();
     expect(mockReplace).not.toHaveBeenCalled();
   });
+
+  it(
+    "does not redirect while 'checking' (Firebase authenticated but hasProfile/hasDisease not " +
+      "resolved yet) — regression test for the register-screen flash bug",
+    () => {
+      mockAuthState = { status: "checking" };
+      mockSegments = ["(auth)", "register"];
+      renderNavigator();
+      expect(mockReplace).not.toHaveBeenCalled();
+    }
+  );
+
+  it(
+    "keeps rendering the navigator (does not unmount it) while 'checking' — unmounting here " +
+      "was itself a bug: it tore down RegisterScreen mid-signup, right when Firebase login " +
+      "triggers the profile check, corrupting the in-progress registration",
+    () => {
+      mockAuthState = { status: "checking" };
+      mockSegments = ["(auth)", "register"];
+      const { toJSON } = renderNavigator();
+      expect(toJSON()).not.toBeNull();
+    }
+  );
 });

@@ -3,16 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { AppPickerField } from "@/components/AppPickerField";
+import { FormSkeleton } from "@/components/Skeleton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
-import { ApiError, apiGet, apiPost, apiPut } from "@/services/apiClient";
+import { apiGet, apiPost, apiPut } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
@@ -50,6 +51,7 @@ export default function EditAddressScreen() {
     reset,
   } = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
+    mode: "onBlur",
     defaultValues: { regionId: "", comunaId: "", calle: "", numero: "" },
   });
 
@@ -90,10 +92,11 @@ export default function EditAddressScreen() {
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
+    // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se
+    // le muestra un mensaje genérico, nunca el error crudo del backend.
     onError: (error) => {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo guardar la dirección.";
-      Alert.alert("Error", message);
+      console.error("Error al guardar dirección:", error);
+      Alert.alert("Error", "No se pudo guardar la dirección.");
     },
   });
 
@@ -114,7 +117,7 @@ export default function EditAddressScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader showBackButton title="Editar dirección" />
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <FormSkeleton rows={4} />
       </ScreenContainer>
     );
   }
@@ -198,9 +201,6 @@ export default function EditAddressScreen() {
 
 function createStyles(theme: VitaCareThemeType) {
   return StyleSheet.create({
-  loader: {
-    marginTop: theme.spacing.xl,
-  },
   header: {
     gap: theme.spacing.xs,
   },

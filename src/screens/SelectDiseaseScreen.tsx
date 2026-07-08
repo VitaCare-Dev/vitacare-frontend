@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { BrandHeader } from "@/components/BrandHeader";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { Skeleton } from "@/components/Skeleton";
 import { refreshAuthProfile } from "@/context/AuthContext";
-import { ApiError, apiGet, apiPost } from "@/services/apiClient";
+import { apiGet, apiPost } from "@/services/apiClient";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -34,9 +35,12 @@ export default function SelectDiseaseScreen() {
       const catalog = await apiGet<DiseaseOption[]>("/api/diseases");
       setDiseases(catalog);
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo cargar el catálogo de enfermedades.";
-      Alert.alert("Error", message, [{ text: "Reintentar", onPress: loadDiseases }]);
+      // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
+      // se le muestra un mensaje genérico, nunca el error crudo del backend.
+      console.error("Error al cargar catálogo de enfermedades:", error);
+      Alert.alert("Error", "No se pudo cargar el catálogo de enfermedades.", [
+        { text: "Reintentar", onPress: loadDiseases },
+      ]);
     } finally {
       setLoadingCatalog(false);
     }
@@ -49,9 +53,10 @@ export default function SelectDiseaseScreen() {
       await apiPost("/api/patients/me/diseases", { idEnfermedad: selectedId });
       await refreshAuthProfile();
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo guardar tu enfermedad.";
-      Alert.alert("Error", message, [
+      // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
+      // se le muestra un mensaje genérico, nunca el error crudo del backend.
+      console.error("Error al guardar enfermedad seleccionada:", error);
+      Alert.alert("Error", "No se pudo guardar tu enfermedad.", [
         { text: "Reintentar", onPress: handleContinue },
         { text: "Cancelar", style: "cancel" },
       ]);
@@ -62,7 +67,7 @@ export default function SelectDiseaseScreen() {
 
   return (
     <ScreenContainer scrollable>
-      <BrandHeader logoStyle="horizontal" />
+      <BrandHeader logoStyle="vertical" />
       <View style={styles.header}>
         <Text style={styles.title}>¿Qué enfermedad crónica quieres seguir?</Text>
         <Text style={styles.subtitle}>
@@ -71,7 +76,14 @@ export default function SelectDiseaseScreen() {
       </View>
 
       {loadingCatalog ? (
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <View style={styles.list} testID="select-disease-skeleton">
+          {[1, 2, 3].map((key) => (
+            <View key={key} style={styles.card}>
+              <Skeleton width="60%" height={18} />
+              <Skeleton width="90%" height={14} />
+            </View>
+          ))}
+        </View>
       ) : (
         <View style={styles.list}>
           {diseases.map((disease) => {
@@ -116,9 +128,6 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
-  },
-  loader: {
-    marginTop: theme.spacing.xl,
   },
   list: {
     gap: theme.spacing.md,

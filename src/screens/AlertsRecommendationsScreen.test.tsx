@@ -110,6 +110,20 @@ describe("AlertsRecommendationsScreen", () => {
     expect(screen.queryByText(/Error 500/)).toBeNull();
   });
 
+  it("shows a single combined error notice (not two) when both endpoints fail", async () => {
+    mockApiGet.mockRejectedValue(new Error("Error 500"));
+    renderWithProviders(<AlertsRecommendationsScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "No se pudieron cargar las alertas ni las recomendaciones. Intenta de nuevo más tarde."
+        )
+      ).toBeTruthy()
+    );
+    expect(screen.queryAllByText("Reintentar")).toHaveLength(1);
+  });
+
   it("refetches alerts and recommendations when the user pulls to refresh", async () => {
     mockApiGet.mockResolvedValue([]);
     renderWithProviders(<AlertsRecommendationsScreen />);

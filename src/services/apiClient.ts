@@ -33,7 +33,7 @@ interface ApiRequestOptions {
 /** fetch en React Native no tiene timeout por defecto: sin esto, una request
  * que nunca resuelve (cold start, servicio caído, red mala) deja la pantalla
  * cargando para siempre en vez de mostrar un error. */
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 10000;
 
 async function getAuthHeader(tokenOverride?: string): Promise<Record<string, string>> {
   if (tokenOverride) {

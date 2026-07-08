@@ -13,7 +13,7 @@ import { AppInput } from "@/components/AppInput";
 import { type MedicationRecord } from "@/components/MedicationCard";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { ApiError, apiPost } from "@/services/apiClient";
+import { apiPost } from "@/services/apiClient";
 import {
   requestNotificationPermissions,
   scheduleMedicationReminder,
@@ -61,6 +61,7 @@ export default function AddMedicationScreen() {
     formState: { errors },
   } = useForm<AddMedicationFormValues>({
     resolver: zodResolver(addMedicationSchema),
+    mode: "onBlur",
     defaultValues: {
       medicationName: "",
       dose: "",
@@ -89,10 +90,11 @@ export default function AddMedicationScreen() {
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     },
+    // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se
+    // le muestra un mensaje genérico, nunca el error crudo del backend.
     onError: (error) => {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo guardar el medicamento.";
-      Alert.alert("Error", message);
+      console.error("Error al guardar medicamento:", error);
+      Alert.alert("Error", "No se pudo guardar el medicamento.");
     },
   });
 

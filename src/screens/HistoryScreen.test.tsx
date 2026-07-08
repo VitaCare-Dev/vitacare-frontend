@@ -40,6 +40,14 @@ const vitalsRecord = {
   peso: 65,
 };
 
+function emptyPage() {
+  return { content: [], page: 0, size: 10, totalElements: 0, totalPages: 0 };
+}
+
+function page(content: unknown[], totalPages = 1) {
+  return { content, page: 0, size: 10, totalElements: content.length, totalPages };
+}
+
 describe("HistoryScreen", () => {
   beforeEach(() => {
     mockPush.mockClear();
@@ -49,7 +57,7 @@ describe("HistoryScreen", () => {
   it(
     "shows an empty state when there are no measurements",
     async () => {
-      mockApiGet.mockResolvedValue([]);
+      mockApiGet.mockResolvedValue(emptyPage());
       renderWithProviders(<HistoryScreen />);
       await waitFor(() =>
         expect(screen.getByText("Aún no tienes controles registrados")).toBeTruthy()
@@ -60,9 +68,9 @@ describe("HistoryScreen", () => {
 
   it("merges glucose and vitals sharing the same idControl into one card", async () => {
     mockApiGet.mockImplementation((path: string) => {
-      if (path === "/api/measurements/glucose") return Promise.resolve([glucoseRecord]);
-      if (path === "/api/measurements/vitals") return Promise.resolve([vitalsRecord]);
-      return Promise.resolve([]);
+      if (path.startsWith("/api/measurements/glucose")) return Promise.resolve(page([glucoseRecord]));
+      if (path.startsWith("/api/measurements/vitals")) return Promise.resolve(page([vitalsRecord]));
+      return Promise.resolve(emptyPage());
     });
     renderWithProviders(<HistoryScreen />);
 
@@ -74,8 +82,8 @@ describe("HistoryScreen", () => {
 
   it("navigates to the measurement detail screen when a card is pressed", async () => {
     mockApiGet.mockImplementation((path: string) => {
-      if (path === "/api/measurements/glucose") return Promise.resolve([glucoseRecord]);
-      return Promise.resolve([]);
+      if (path.startsWith("/api/measurements/glucose")) return Promise.resolve(page([glucoseRecord]));
+      return Promise.resolve(emptyPage());
     });
     renderWithProviders(<HistoryScreen />);
 
@@ -90,13 +98,15 @@ describe("HistoryScreen", () => {
 
   it("sorts entries from most recent to oldest", async () => {
     mockApiGet.mockImplementation((path: string) => {
-      if (path === "/api/measurements/glucose") {
-        return Promise.resolve([
-          { ...glucoseRecord, idControl: 1, fechaHora: "2026-05-01T10:00:00", glucosa: 90 },
-          { ...glucoseRecord, idControl: 2, fechaHora: "2026-06-01T10:00:00", glucosa: 100 },
-        ]);
+      if (path.startsWith("/api/measurements/glucose")) {
+        return Promise.resolve(
+          page([
+            { ...glucoseRecord, idControl: 1, fechaHora: "2026-05-01T10:00:00", glucosa: 90 },
+            { ...glucoseRecord, idControl: 2, fechaHora: "2026-06-01T10:00:00", glucosa: 100 },
+          ])
+        );
       }
-      return Promise.resolve([]);
+      return Promise.resolve(emptyPage());
     });
     renderWithProviders(<HistoryScreen />);
 
@@ -106,7 +116,7 @@ describe("HistoryScreen", () => {
   });
 
   it("refetches all measurements when the user pulls to refresh", async () => {
-    mockApiGet.mockResolvedValue([]);
+    mockApiGet.mockResolvedValue(emptyPage());
     renderWithProviders(<HistoryScreen />);
     await waitFor(() =>
       expect(screen.getByText("Aún no tienes controles registrados")).toBeTruthy()
@@ -117,5 +127,55 @@ describe("HistoryScreen", () => {
     await act(async () => refreshControl.props.onRefresh());
 
     expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
+  });
+
+  it("filters by measurement type when a chip is selected", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/api/measurements/glucose")) return Promise.resolve(page([glucoseRecord]));
+      if (path.startsWith("/api/measurements/vitals")) return Promise.resolve(page([vitalsRecord]));
+      return Promise.resolve(emptyPage());
+    });
+    renderWithProviders(<HistoryScreen />);
+    await waitFor(() => expect(screen.getByText("98 mg/dL")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Signos vitales"));
+
+    await waitFor(() => expect(screen.getByText("120/80 mmHg")).toBeTruthy());
+    expect(screen.queryByText("98 mg/dL")).toBeNull();
+  });
+
+  it("shows pagination controls and requests the next page for a single type", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/api/measurements/glucose")) {
+        return Promise.resolve(page([glucoseRecord], 2));
+      }
+      return Promise.resolve(emptyPage());
+    });
+    renderWithProviders(<HistoryScreen />);
+
+    fireEvent.press(screen.getByText("Glucosa"));
+    await waitFor(() => expect(screen.getByText("Página 1 de 2")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Siguiente"));
+
+    await waitFor(() =>
+      expect(mockApiGet).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/api\/measurements\/glucose\?page=1&size=10/)
+      )
+    );
+  });
+
+  it("shows a generic error notice with retry when a measurement fails to load", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/api/measurements/glucose")) return Promise.reject(new Error("network"));
+      return Promise.resolve(emptyPage());
+    });
+    renderWithProviders(<HistoryScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("No se pudo cargar el historial. Intenta de nuevo más tarde.")
+      ).toBeTruthy()
+    );
   });
 });

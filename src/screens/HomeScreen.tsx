@@ -16,6 +16,7 @@ import { AppButton } from "@/components/AppButton";
 import { HealthCard } from "@/components/HealthCard";
 import { IconImage, IconName } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
@@ -98,6 +99,38 @@ async function getLatestOrNull<T>(path: string): Promise<T | null> {
   }
 }
 
+/** Imita la forma real de Home (saludo, resumen, tratamiento, alerta) mientras cargan los datos. */
+function HomeSkeleton() {
+  const theme = useTheme();
+
+  return (
+    <View style={{ gap: theme.spacing.xl }} testID="home-skeleton">
+      <View style={{ gap: theme.spacing.xs }}>
+        <Skeleton width="55%" height={26} />
+        <Skeleton width="70%" height={16} />
+      </View>
+
+      <View style={{ gap: theme.spacing.sm }}>
+        <Skeleton width="40%" height={18} />
+        <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+          <Skeleton width="48%" height={90} borderRadius={theme.radius.lg} />
+          <Skeleton width="48%" height={90} borderRadius={theme.radius.lg} />
+        </View>
+      </View>
+
+      <View style={{ gap: theme.spacing.sm }}>
+        <Skeleton width="40%" height={18} />
+        <Skeleton width="100%" height={90} borderRadius={theme.radius.lg} />
+      </View>
+
+      <View style={{ gap: theme.spacing.sm }}>
+        <Skeleton width="45%" height={18} />
+        <Skeleton width="100%" height={80} borderRadius={theme.radius.lg} />
+      </View>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
@@ -150,6 +183,15 @@ export default function HomeScreen() {
     enabled,
   });
 
+  const initialLoading =
+    patientQuery.isLoading ||
+    historyQuery.isLoading ||
+    glucoseQuery.isLoading ||
+    vitalsQuery.isLoading ||
+    lipidsQuery.isLoading ||
+    activeMedicationQuery.isLoading ||
+    unreadAlertsQuery.isLoading;
+
   const refreshing =
     patientQuery.isRefetching ||
     historyQuery.isRefetching ||
@@ -158,6 +200,18 @@ export default function HomeScreen() {
     lipidsQuery.isRefetching ||
     activeMedicationQuery.isRefetching ||
     unreadAlertsQuery.isRefetching;
+
+  // status 0 = falló la conexión (sin internet o el backend no responde), a
+  // diferencia de un error normal del servidor (4xx/5xx). Ver apiClient.ts.
+  const isOffline = [
+    patientQuery,
+    historyQuery,
+    glucoseQuery,
+    vitalsQuery,
+    lipidsQuery,
+    activeMedicationQuery,
+    unreadAlertsQuery,
+  ].some((query) => query.error instanceof ApiError && query.error.status === 0);
 
   function handleRefresh() {
     patientQuery.refetch();
@@ -169,6 +223,7 @@ export default function HomeScreen() {
     unreadAlertsQuery.refetch();
   }
 
+  const hasUnreadAlerts = (unreadAlertsQuery.data?.length ?? 0) > 0;
   const patientName = patientQuery.data?.nombre ?? null;
   const hasMeasurements = historyQuery.data ? historyQuery.data.length > 0 : null;
   const latestGlucose = glucoseQuery.data ?? null;
@@ -227,18 +282,32 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
+    <ScreenContainer
+      scrollable
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      offline={isOffline}
+      onRetryOffline={handleRefresh}
+    >
       <View style={styles.headerRow}>
         <View style={styles.spacer} />
         <Pressable
           onPress={() => router.push("/alerts-recommendations")}
           style={styles.notificationButton}
+          accessibilityLabel={hasUnreadAlerts ? "Tienes alertas sin leer" : "No tienes alertas nuevas"}
         >
-          <IconImage name="campana" size={28} />
-          <View style={styles.notificationBadge} />
+          <IconImage
+            name={hasUnreadAlerts ? "notificacion-de-campana-en-redes-sociales" : "campana"}
+            size={28}
+          />
+          {hasUnreadAlerts ? <View style={styles.notificationBadge} /> : null}
         </Pressable>
       </View>
 
+      {initialLoading ? (
+        <HomeSkeleton />
+      ) : (
+        <>
       <View style={styles.greetingBlock}>
         <Text style={styles.greeting}>¡Hola{patientName ? `, ${patientName}` : ""}!</Text>
         <Text style={styles.message}>Hoy es un buen día para cuidarte.</Text>
@@ -246,14 +315,14 @@ export default function HomeScreen() {
 
       {hasMeasurements === false ? (
         <View style={styles.ctaCard}>
-          <IconImage name="glucosa" size={32} />
+          <IconImage name="agregar" size={32} />
           <Text style={styles.ctaTitle}>Aún no tienes mediciones registradas</Text>
           <Text style={styles.ctaText}>
             Registra tu primera medición para empezar a ver tu resumen aquí.
           </Text>
           <AppButton
-            title="Registrar mi primera medición"
-            onPress={() => router.push("/glucose")}
+            title="Registrar una medición"
+            onPress={() => router.push("/health-control")}
           />
         </View>
       ) : (
@@ -361,6 +430,8 @@ export default function HomeScreen() {
           </View>
         </Pressable>
       </View>
+        </>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acceso rápido al asistente IA</Text>

@@ -26,6 +26,7 @@ function Probe() {
   const auth = useAuth();
   if (auth.status === "loading") return <Text>loading</Text>;
   if (auth.status === "unauthenticated") return <Text>unauthenticated</Text>;
+  if (auth.status === "checking") return <Text>checking</Text>;
   return (
     <Text>{`authenticated hasProfile:${auth.hasProfile} hasDisease:${auth.hasDisease}`}</Text>
   );
@@ -137,4 +138,53 @@ describe("AuthContext", () => {
     // No debe lanzar ni requerir un provider activo.
     await expect(refreshAuthProfile()).resolves.toBeUndefined();
   });
+
+  it(
+    "does not let a stale check (started right after Firebase login, before the patient exists) " +
+      "overwrite a newer refreshAuthProfile result that resolves first",
+    async () => {
+      let resolveStaleCheck: () => void = () => {};
+      const staleCheckGate = new Promise<void>((resolve) => {
+        resolveStaleCheck = resolve;
+      });
+
+      let callCount = 0;
+      apiGet.mockImplementation(() => {
+        callCount += 1;
+        if (callCount === 1) {
+          // La verificación disparada por onAuthStateChanged al crear la cuenta:
+          // queda pendiente hasta que el test la libere manualmente, y cuando
+          // resuelve, lo hace con el resultado desactualizado (paciente no existe aún).
+          return staleCheckGate.then(() => {
+            throw new ApiError(404, "not found");
+          });
+        }
+        // La verificación de refreshAuthProfile (tras crear el paciente de verdad) resuelve de inmediato.
+        return Promise.resolve({});
+      });
+
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>
+      );
+      act(() => authStateCallback?.({ uid: "u1" }));
+
+      // Mientras la verificación vieja sigue pendiente, se completa el registro real.
+      await act(async () => {
+        await refreshAuthProfile();
+      });
+      await waitFor(() =>
+        expect(screen.getByText("authenticated hasProfile:true hasDisease:true")).toBeTruthy()
+      );
+
+      // Ahora resuelve (tarde) la verificación vieja con su resultado obsoleto: no debe pisar el estado correcto.
+      await act(async () => {
+        resolveStaleCheck();
+        await staleCheckGate.catch(() => {});
+      });
+
+      expect(screen.getByText("authenticated hasProfile:true hasDisease:true")).toBeTruthy();
+    }
+  );
 });

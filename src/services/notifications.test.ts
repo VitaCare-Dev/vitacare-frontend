@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 /**
  * `notifications.ts` decide UNA VEZ, al cargarse, si está en Expo Go (donde
  * expo-notifications no se puede ni importar en Android) usando
@@ -6,10 +8,11 @@
  * `expo-constants` (y de `expo-notifications` para el camino "normal").
  */
 describe("notifications", () => {
-  afterEach(() => {
+  afterEach(async () => {
     jest.resetModules();
     jest.dontMock("expo-constants");
     jest.dontMock("expo-notifications");
+    await AsyncStorage.clear();
   });
 
   describe("in Expo Go (Android limitation)", () => {
@@ -68,6 +71,7 @@ describe("notifications", () => {
       setNotificationChannelAsync: jest.fn(),
       getAllScheduledNotificationsAsync: jest.fn(),
       cancelScheduledNotificationAsync: jest.fn(),
+      cancelAllScheduledNotificationsAsync: jest.fn(),
       scheduleNotificationAsync: jest.fn(),
       AndroidImportance: { HIGH: 4 },
       SchedulableTriggerInputTypes: { TIME_INTERVAL: "timeInterval" },
@@ -190,6 +194,40 @@ describe("notifications", () => {
       await syncMedicationReminders([
         { idMedicamento: 1, nombreMedicamento: "X", dosis: "1", frecuenciaHoras: 8 },
       ]);
+      expect(mockNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+    });
+
+    it("areNotificationsEnabled defaults to true when nothing was stored yet", async () => {
+      const { areNotificationsEnabled } = loadOutsideExpoGo();
+      await expect(areNotificationsEnabled()).resolves.toBe(true);
+    });
+
+    it("setNotificationsEnabled(false) persists the preference and cancels everything scheduled", async () => {
+      const { areNotificationsEnabled, setNotificationsEnabled } = loadOutsideExpoGo();
+      await setNotificationsEnabled(false);
+      expect(mockNotifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalled();
+      await expect(areNotificationsEnabled()).resolves.toBe(false);
+    });
+
+    it("setNotificationsEnabled(true) persists the preference without cancelling anything", async () => {
+      const { areNotificationsEnabled, setNotificationsEnabled } = loadOutsideExpoGo();
+      await setNotificationsEnabled(true);
+      expect(mockNotifications.cancelAllScheduledNotificationsAsync).not.toHaveBeenCalled();
+      await expect(areNotificationsEnabled()).resolves.toBe(true);
+    });
+
+    it("scheduleMedicationReminder does nothing when notifications are disabled", async () => {
+      const { scheduleMedicationReminder, setNotificationsEnabled } = loadOutsideExpoGo();
+      await setNotificationsEnabled(false);
+      mockNotifications.scheduleNotificationAsync.mockClear();
+
+      await scheduleMedicationReminder({
+        idMedicamento: 1,
+        nombreMedicamento: "X",
+        dosis: "1",
+        frecuenciaHoras: 8,
+      });
+
       expect(mockNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
     });
   });

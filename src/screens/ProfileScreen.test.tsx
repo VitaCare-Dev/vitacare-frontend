@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { Image as ExpoImage } from "expo-image";
 import { Alert, RefreshControl } from "react-native";
 
 import { apiGet } from "@/services/apiClient";
@@ -26,6 +27,31 @@ jest.mock("@/services/apiClient", () => ({
   apiGet: jest.fn(),
 }));
 
+const mockPickProfilePhoto = jest.fn();
+const mockTakeProfilePhoto = jest.fn();
+const mockUploadProfilePhoto = jest.fn();
+jest.mock("@/services/profilePhoto", () => ({
+  pickProfilePhoto: (...args: unknown[]) => mockPickProfilePhoto(...args),
+  takeProfilePhoto: (...args: unknown[]) => mockTakeProfilePhoto(...args),
+  uploadProfilePhoto: (...args: unknown[]) => mockUploadProfilePhoto(...args),
+}));
+
+const mockAreNotificationsEnabled = jest.fn();
+const mockSetNotificationsEnabled = jest.fn();
+jest.mock("@/services/notifications", () => ({
+  notificationsAvailable: true,
+  areNotificationsEnabled: (...args: unknown[]) => mockAreNotificationsEnabled(...args),
+  setNotificationsEnabled: (...args: unknown[]) => mockSetNotificationsEnabled(...args),
+}));
+
+/** Simula elegir una opción del Alert que abre `handleChangePhoto` (Cancelar/Tomar foto/Elegir de galería). */
+function pressChangePhotoOption(buttonIndex: number) {
+  (Alert.alert as jest.Mock).mockImplementationOnce((_title, _msg, buttons) => {
+    buttons?.[buttonIndex]?.onPress?.();
+  });
+  fireEvent.press(screen.getByLabelText("Cambiar foto de perfil"));
+}
+
 const mockApiGet = apiGet as jest.Mock;
 
 const patient = {
@@ -37,6 +63,7 @@ const patient = {
   fechaNacimiento: "1990-05-15",
   telefonoPrincipal: "+56 9 1234 5678",
   telefonoSecundario: null,
+  fotoPerfilUrl: null as string | null,
 };
 
 const address = {
@@ -63,6 +90,11 @@ describe("ProfileScreen", () => {
     mockPush.mockClear();
     mockSignOut.mockReset();
     mockApiGet.mockReset();
+    mockPickProfilePhoto.mockReset();
+    mockTakeProfilePhoto.mockReset();
+    mockUploadProfilePhoto.mockReset();
+    mockAreNotificationsEnabled.mockReset().mockResolvedValue(true);
+    mockSetNotificationsEnabled.mockReset().mockResolvedValue(undefined);
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
   });
 
@@ -82,6 +114,26 @@ describe("ProfileScreen", () => {
     },
     20000
   );
+
+  it("caches the profile photo by its stable blob URL, ignoring the SAS query string", async () => {
+    mockApi({
+      patient: {
+        ...patient,
+        fotoPerfilUrl:
+          "https://vitacareprofilephotos.blob.core.windows.net/profile-photos/paciente-1.jpg?sv=2020-12-06&sig=abc",
+      },
+    });
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    const image = screen.UNSAFE_getByType(ExpoImage);
+    expect(image.props.source.uri).toBe(
+      "https://vitacareprofilephotos.blob.core.windows.net/profile-photos/paciente-1.jpg?sv=2020-12-06&sig=abc"
+    );
+    expect(image.props.source.cacheKey).toBe(
+      "https://vitacareprofilephotos.blob.core.windows.net/profile-photos/paciente-1.jpg"
+    );
+  });
 
   it("shows fallback text when there is no address or disease registered", async () => {
     mockApi({ addresses: [], diseases: [] });
@@ -107,8 +159,40 @@ describe("ProfileScreen", () => {
     renderWithProviders(<ProfileScreen />);
     await waitFor(() => expect(screen.getByText("Desactivado")).toBeTruthy());
 
-    fireEvent(screen.getByRole("switch"), "valueChange", true);
+    fireEvent(screen.getByLabelText("Tema oscuro"), "valueChange", true);
     await waitFor(() => expect(screen.getByText("Activado")).toBeTruthy());
+  });
+
+  it("shows notifications as enabled by default and lets the user disable them", async () => {
+    mockApi();
+    // La primera lectura (al montar) dice "activadas"; tras desactivar, la
+    // pantalla invalida la query y vuelve a leerla, ahora "desactivada".
+    mockAreNotificationsEnabled.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("Activadas: te avisamos cuando toca un medicamento")).toBeTruthy()
+    );
+
+    await act(async () => fireEvent(screen.getByLabelText("Notificaciones"), "valueChange", false));
+
+    expect(mockSetNotificationsEnabled.mock.calls[0]?.[0]).toBe(false);
+    await waitFor(() =>
+      expect(
+        screen.getByText("Desactivadas: no recibirás recordatorios de medicamentos")
+      ).toBeTruthy()
+    );
+  });
+
+  it("reflects a previously disabled notifications preference", async () => {
+    mockApi();
+    mockAreNotificationsEnabled.mockResolvedValue(false);
+    renderWithProviders(<ProfileScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Desactivadas: no recibirás recordatorios de medicamentos")
+      ).toBeTruthy()
+    );
   });
 
   it("asks for confirmation and signs out when the user confirms", async () => {
@@ -121,6 +205,71 @@ describe("ProfileScreen", () => {
 
     fireEvent.press(screen.getByText("Cerrar sesión"));
     expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it("opens a chooser and uploads a photo from the gallery when picked", async () => {
+    mockApi();
+    mockPickProfilePhoto.mockResolvedValue("file:///local/photo.jpg");
+    mockUploadProfilePhoto.mockResolvedValue(undefined);
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    await act(async () => pressChangePhotoOption(2)); // "Elegir de galería"
+
+    expect(mockPickProfilePhoto).toHaveBeenCalled();
+    expect(mockTakeProfilePhoto).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockUploadProfilePhoto.mock.calls[0]?.[0]).toBe("file:///local/photo.jpg"));
+  });
+
+  it("uploads a photo taken with the camera when that option is chosen", async () => {
+    mockApi();
+    mockTakeProfilePhoto.mockResolvedValue("file:///local/camera.jpg");
+    mockUploadProfilePhoto.mockResolvedValue(undefined);
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    await act(async () => pressChangePhotoOption(1)); // "Tomar foto"
+
+    expect(mockTakeProfilePhoto).toHaveBeenCalled();
+    expect(mockPickProfilePhoto).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockUploadProfilePhoto.mock.calls[0]?.[0]).toBe("file:///local/camera.jpg"));
+  });
+
+  it("does not open the picker or upload anything when the user cancels the chooser", async () => {
+    mockApi();
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    await act(async () => pressChangePhotoOption(0)); // "Cancelar"
+
+    expect(mockPickProfilePhoto).not.toHaveBeenCalled();
+    expect(mockTakeProfilePhoto).not.toHaveBeenCalled();
+    expect(mockUploadProfilePhoto).not.toHaveBeenCalled();
+  });
+
+  it("does not upload anything when the user cancels the photo picker itself", async () => {
+    mockApi();
+    mockPickProfilePhoto.mockResolvedValue(null);
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    await act(async () => pressChangePhotoOption(2));
+
+    expect(mockUploadProfilePhoto).not.toHaveBeenCalled();
+  });
+
+  it("shows an error alert when the upload fails", async () => {
+    mockApi();
+    mockPickProfilePhoto.mockResolvedValue("file:///local/photo.jpg");
+    mockUploadProfilePhoto.mockRejectedValue(new Error("boom"));
+    renderWithProviders(<ProfileScreen />);
+    await waitFor(() => expect(screen.getByText("María Pérez")).toBeTruthy());
+
+    await act(async () => pressChangePhotoOption(2));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith("Error", "No se pudo subir la foto de perfil.")
+    );
   });
 
   it("refetches patient data when the user pulls to refresh", async () => {

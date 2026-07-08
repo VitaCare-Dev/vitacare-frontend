@@ -30,8 +30,8 @@ describe("mockData", () => {
     expect(healthControlOptions.map((item) => item.key)).toEqual([
       "vitales",
       "glucosa",
-      "tratamiento",
       "lipidos",
+      "tratamiento",
     ]);
   });
 

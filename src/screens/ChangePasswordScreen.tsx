@@ -29,6 +29,7 @@ export default function ChangePasswordScreen() {
 
   const { control, handleSubmit, watch } = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
+    mode: "onBlur",
     defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
   });
 

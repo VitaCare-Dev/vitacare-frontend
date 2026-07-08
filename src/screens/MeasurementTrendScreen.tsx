@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Skeleton } from "@/components/Skeleton";
 import { TrendBarChart, type TrendPoint } from "@/components/TrendBarChart";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
@@ -112,7 +113,10 @@ export default function MeasurementTrendScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <View testID="trend-skeleton" style={{ gap: theme.spacing.md, marginTop: theme.spacing.md }}>
+          <Skeleton width="100%" height={180} borderRadius={16} />
+          <Skeleton width="40%" height={13} />
+        </View>
       ) : points.length < 2 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Aún no hay suficientes datos</Text>
@@ -157,9 +161,6 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
-  },
-  loader: {
-    marginTop: theme.spacing.xl,
   },
   emptyCard: {
     backgroundColor: theme.colors.surface,

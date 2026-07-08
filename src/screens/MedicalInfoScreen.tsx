@@ -2,13 +2,14 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ReauthPasswordModal } from "@/components/ReauthPasswordModal";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { FormSkeleton } from "@/components/Skeleton";
 import { auth } from "@/config/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
@@ -210,7 +211,7 @@ export default function MedicalInfoScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader showBackButton title="Información médica" />
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <FormSkeleton rows={4} />
       </ScreenContainer>
     );
   }
@@ -367,9 +368,6 @@ function InfoRow({ label, value }: Readonly<{ label: string; value: string }>) {
 
 function createStyles(theme: VitaCareThemeType) {
   return StyleSheet.create({
-  loader: {
-    marginTop: theme.spacing.xl,
-  },
   section: {
     gap: theme.spacing.sm,
   },

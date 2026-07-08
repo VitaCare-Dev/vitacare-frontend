@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/config/queryClient";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppNavigator } from "@/navigation/AppNavigator";
@@ -23,7 +24,9 @@ export default function RootLayout() {
       <AppThemeProvider>
         <NavigationThemeBridge>
           <AuthProvider>
-            <AppNavigator />
+            <ErrorBoundary>
+              <AppNavigator />
+            </ErrorBoundary>
           </AuthProvider>
         </NavigationThemeBridge>
       </AppThemeProvider>

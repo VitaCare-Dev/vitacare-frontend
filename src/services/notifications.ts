@@ -1,8 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants, { AppOwnership } from "expo-constants";
 import type * as NotificationsModule from "expo-notifications";
 import { Platform } from "react-native";
 
 const MEDICATION_CHANNEL_ID = "medication-reminders";
+const NOTIFICATIONS_ENABLED_KEY = "vitacare:notifications-enabled";
 
 /**
  * expo-notifications lanza un error apenas se IMPORTA en Expo Go para Android
@@ -37,6 +39,24 @@ if (Notifications) {
       shouldSetBadge: false,
     }),
   });
+}
+
+/** Si el usuario dejó activados los recordatorios locales desde su perfil (activado por defecto). */
+export async function areNotificationsEnabled(): Promise<boolean> {
+  const stored = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+  return stored !== "false";
+}
+
+/**
+ * Activa/desactiva los recordatorios locales de medicamentos. Al desactivar,
+ * cancela de inmediato todo lo que ya estaba programado, sin esperar a que
+ * el usuario vuelva a abrir la pantalla de Tratamiento.
+ */
+export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
+  if (!enabled && Notifications) {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
 }
 
 /** Pide permiso de notificaciones (no hace nada si ya estaba concedido) y crea el canal de Android. */
@@ -91,6 +111,7 @@ export async function cancelMedicationReminder(idMedicamento: number): Promise<v
  */
 export async function scheduleMedicationReminder(medication: MedicationForReminder): Promise<void> {
   if (!Notifications) return;
+  if (!(await areNotificationsEnabled())) return;
   await cancelMedicationReminder(medication.idMedicamento);
 
   await Notifications.scheduleNotificationAsync({

@@ -1,11 +1,13 @@
 import { Stack, useRouter, useSegments } from "expo-router";
+import { signOut } from "firebase/auth";
 import { useEffect } from "react";
 
+import { auth } from "@/config/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/theme/ThemeContext";
 
 export function AppNavigator() {
-  const auth = useAuth();
+  const authState = useAuth();
   // Cast a string[]: el tipo tupla exacto que infiere expo-router depende de
   // .expo/types/router.d.ts (generado localmente por `expo start`/`prebuild`),
   // que no existe en un checkout limpio de CI y rompe el acceso a segments[1].
@@ -14,26 +16,46 @@ export function AppNavigator() {
   const theme = useTheme();
 
   useEffect(() => {
-    if (auth.status === "loading") return;
+    // "checking": Firebase ya autenticó, pero aún no sabemos si el usuario
+    // tiene paciente/enfermedad registrados. No se debe navegar con esa
+    // incertidumbre (por eso se trata igual que "loading"): decidir sin
+    // esperar la verificación real es lo que causaba ir a Home de forma
+    // optimista y luego rebotar de vuelta a /register a mitad del registro.
+    if (authState.status === "loading" || authState.status === "checking") return;
 
     const inAuthGroup = segments[0] === "(auth)";
     const onRegisterScreen = segments[0] === "(auth)" && segments[1] === "register";
     const onSelectDiseaseScreen = segments[0] === "(auth)" && segments[1] === "select-disease";
 
-    if (auth.status === "unauthenticated" && !inAuthGroup) {
+    if (authState.status === "unauthenticated" && !inAuthGroup) {
       router.replace("/(auth)/login");
-    } else if (auth.status === "authenticated") {
-      if (!auth.hasProfile && !onRegisterScreen) {
-        router.replace("/register");
-      } else if (auth.hasProfile && !auth.hasDisease && !onSelectDiseaseScreen) {
+    } else if (authState.status === "authenticated") {
+      if (!authState.hasProfile && !onRegisterScreen) {
+        // En el uso real, un usuario autenticado sin paciente registrado solo
+        // ocurre mientras el flujo de registro está en curso (y ahí
+        // onRegisterScreen ya lo cubre). Fuera de ese flujo, es un estado que
+        // no debería alcanzarse en la práctica (ej. una cuenta de Firebase
+        // creada manualmente sin pasar por la app): se cierra la sesión y se
+        // vuelve a Login en vez de ofrecer un flujo de "completar perfil".
+        signOut(auth);
+        router.replace("/(auth)/login");
+      } else if (authState.hasProfile && !authState.hasDisease && !onSelectDiseaseScreen) {
         router.replace("/select-disease");
-      } else if (auth.hasProfile && auth.hasDisease && inAuthGroup) {
+      } else if (authState.hasProfile && authState.hasDisease && inAuthGroup) {
         router.replace("/(tabs)/home");
       }
     }
-  }, [auth, segments]);
+  }, [authState, segments]);
 
-  if (auth.status === "loading") return null;
+  // Importante: NO se agrega "checking" acá. Antes de este fix, entrar en
+  // "checking" (justo al crear la cuenta de Firebase, a mitad del registro)
+  // desmontaba todo el Stack (incluida RegisterScreen) y lo volvía a montar
+  // al resolver — eso rompía el flujo de registro en curso (con suerte de
+  // timing, hasta se disparaba el cierre de sesión pensado para el caso
+  // borde de un usuario huérfano, matando el token a mitad del registro).
+  // Evitar navegar durante "checking" ya lo hace el efecto de arriba; no
+  // hace falta (ni conviene) dejar de renderizar el árbol completo.
+  if (authState.status === "loading") return null;
 
   return (
     <Stack

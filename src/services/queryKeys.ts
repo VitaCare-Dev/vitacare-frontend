@@ -15,4 +15,5 @@ export const queryKeys = {
   alertsAll: ["alerts", "all"] as const,
   alertsUnread: ["alerts", "unread"] as const,
   recommendationsAll: ["recommendations", "all"] as const,
+  notificationsEnabled: ["preferences", "notificationsEnabled"] as const,
 };

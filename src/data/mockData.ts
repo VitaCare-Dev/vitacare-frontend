@@ -53,16 +53,16 @@ export const healthControlOptions: HealthControlOption[] = [
     description: "Control de glicemia capilar.",
   },
   {
-    key: "tratamiento",
-    label: "Tratamiento",
-    icon: "medicamento",
-    description: "Listado y seguimiento de medicamentos.",
-  },
-  {
     key: "lipidos",
     label: "Colesterol / lípidos",
     icon: "registros",
     description: "Perfil lipídico y triglicéridos.",
+  },
+  {
+    key: "tratamiento",
+    label: "Tratamiento",
+    icon: "medicamento",
+    description: "Listado y seguimiento de medicamentos.",
   },
 ];
 

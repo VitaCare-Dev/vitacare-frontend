@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { FormSkeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
+import { apiDelete, apiGet } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
@@ -94,9 +95,11 @@ export default function MeasurementDetailScreen() {
     return others === 0;
   }
 
+  // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se le
+  // muestra un mensaje genérico, nunca el error crudo del backend.
   function showDeleteError(error: unknown) {
-    const message = error instanceof ApiError ? error.message : "No se pudo eliminar el registro.";
-    Alert.alert("Error", message);
+    console.error("Error al eliminar registro:", error);
+    Alert.alert("Error", "No se pudo eliminar el registro.");
   }
 
   const deleteGlucoseMutation = useMutation({
@@ -135,7 +138,7 @@ export default function MeasurementDetailScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader showBackButton title="Detalle del control" />
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <FormSkeleton rows={3} />
       </ScreenContainer>
     );
   }
@@ -263,9 +266,6 @@ function DetailRow({ label, value }: Readonly<{ label: string; value: string }>)
 
 function createStyles(theme: VitaCareThemeType) {
   return StyleSheet.create({
-  loader: {
-    marginTop: theme.spacing.xl,
-  },
   header: {
     gap: theme.spacing.xs,
   },

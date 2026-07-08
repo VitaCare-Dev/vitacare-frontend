@@ -25,9 +25,7 @@ jest.mock("@/services/apiClient", () => ({
 }));
 
 jest.mock("@/services/notifications", () => ({
-  notificationsAvailable: true,
   requestNotificationPermissions: jest.fn(),
-  scheduleTestNotification: jest.fn(),
   syncMedicationReminders: jest.fn(),
   cancelMedicationReminder: jest.fn(),
 }));
@@ -37,7 +35,6 @@ const mockApiPatch = apiPatch as jest.Mock;
 const mockApiDelete = apiDelete as jest.Mock;
 const mockRequestPermissions = notifications.requestNotificationPermissions as jest.Mock;
 const mockSyncReminders = notifications.syncMedicationReminders as jest.Mock;
-const mockScheduleTest = notifications.scheduleTestNotification as jest.Mock;
 
 const activeMedication = {
   idMedicamento: 1,
@@ -57,7 +54,6 @@ describe("TreatmentScreen", () => {
     mockApiDelete.mockReset();
     mockRequestPermissions.mockReset().mockResolvedValue(true);
     mockSyncReminders.mockReset().mockResolvedValue(undefined);
-    mockScheduleTest.mockReset().mockResolvedValue(undefined);
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
   });
 
@@ -119,15 +115,6 @@ describe("TreatmentScreen", () => {
 
     fireEvent.press(screen.getByText("Eliminar"));
     await waitFor(() => expect(mockApiDelete).toHaveBeenCalledWith("/api/medications/1"));
-  });
-
-  it("sends a test notification when available and permission is granted", async () => {
-    mockApiGet.mockResolvedValue([]);
-    renderWithProviders(<TreatmentScreen />);
-    await waitFor(() => expect(screen.getByText("Enviar notificación de prueba (10s)")).toBeTruthy());
-
-    fireEvent.press(screen.getByText("Enviar notificación de prueba (10s)"));
-    await waitFor(() => expect(mockScheduleTest).toHaveBeenCalled());
   });
 
   it("refetches medications when the user pulls to refresh", async () => {

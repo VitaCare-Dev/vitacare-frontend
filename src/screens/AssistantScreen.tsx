@@ -17,7 +17,7 @@ import {
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { ApiError, apiPost } from "@/services/apiClient";
+import { apiPost } from "@/services/apiClient";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -83,10 +83,11 @@ export default function AssistantScreen() {
         { id: `assistant-${Date.now()}`, sender: "assistant", text: stripUsageInfo(data.respuesta) },
       ]);
     },
+    // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se
+    // le muestra un mensaje genérico, nunca el error crudo del backend.
     onError: (error) => {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo contactar al asistente.";
-      Alert.alert("Error", message);
+      console.error("Error al contactar al asistente:", error);
+      Alert.alert("Error", "No se pudo contactar al asistente.");
     },
   });
 

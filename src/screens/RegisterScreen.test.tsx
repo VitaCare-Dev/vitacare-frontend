@@ -17,10 +17,8 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
 
-let mockAuthState: { status: string } = { status: "unauthenticated" };
 const mockRefreshAuthProfile = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/context/AuthContext", () => ({
-  useAuth: () => mockAuthState,
   refreshAuthProfile: () => mockRefreshAuthProfile(),
 }));
 
@@ -71,7 +69,6 @@ async function fillAddressStep() {
 
 describe("RegisterScreen", () => {
   beforeEach(() => {
-    mockAuthState = { status: "unauthenticated" };
     mockRefreshAuthProfile.mockClear();
     mockCreateUser.mockReset();
     mockUpdateProfile.mockReset();
@@ -123,6 +120,11 @@ describe("RegisterScreen", () => {
       )
     );
     await waitFor(() => expect(mockRefreshAuthProfile).toHaveBeenCalled());
+
+    // Tras el éxito, la pantalla se mantiene en estado de carga (no vuelve a
+    // mostrar "Registrarse") hasta que AppNavigator navegue fuera de esta
+    // pantalla, para no mostrar el formulario "normal" por un instante.
+    expect(screen.getByText("Guardando...")).toBeTruthy();
   });
 
   it("shows a friendly error when the email is already registered", async () => {
@@ -165,23 +167,6 @@ describe("RegisterScreen", () => {
         expect.anything()
       )
     );
-  });
-
-  it("starts at step 2 of 2 and skips credentials when completing an existing profile", async () => {
-    mockAuthState = { status: "authenticated" };
-    mockApiPost.mockResolvedValue({});
-    renderWithProviders(<RegisterScreen />);
-
-    expect(screen.getByText("Paso 1 de 2 — Tus datos personales.")).toBeTruthy();
-    expect(screen.queryByPlaceholderText("correo@vitacare.cl")).toBeNull();
-
-    await fillPersonalStep();
-    await waitFor(() => expect(screen.getByText("Paso 2 de 2 — Tu dirección.")).toBeTruthy());
-    await fillAddressStep();
-    fireEvent.press(screen.getByText("Completar registro"));
-
-    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/api/auth/register", expect.anything()));
-    expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
   it("navigates back from step 2 to step 1 in the signup flow", async () => {

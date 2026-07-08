@@ -44,6 +44,11 @@ function notFound() {
   return new ApiError(404, "not found");
 }
 
+function offlineError() {
+  const { ApiError } = jest.requireActual("@/services/apiClient");
+  return new ApiError(0, "No se pudo conectar con el servidor al llamar /api/patients/me.");
+}
+
 describe("HomeScreen", () => {
   beforeEach(() => {
     mockPush.mockClear();
@@ -60,6 +65,14 @@ describe("HomeScreen", () => {
     10000
   );
 
+  it("shows a skeleton instead of the real content while the initial data is still loading", () => {
+    mockApiGet.mockImplementation(() => new Promise(() => {})); // nunca resuelve
+    renderWithProviders(<HomeScreen />);
+
+    expect(screen.getByTestId("home-skeleton")).toBeTruthy();
+    expect(screen.queryByText("Resumen de hoy")).toBeNull();
+  });
+
   it("shows the 'first measurement' CTA when there is no history yet", async () => {
     mockApi({ history: [] });
     renderWithProviders(<HomeScreen />);
@@ -67,8 +80,8 @@ describe("HomeScreen", () => {
       expect(screen.getByText("Aún no tienes mediciones registradas")).toBeTruthy()
     );
 
-    fireEvent.press(screen.getByText("Registrar mi primera medición"));
-    expect(mockPush).toHaveBeenCalledWith("/glucose");
+    fireEvent.press(screen.getByText("Registrar una medición"));
+    expect(mockPush).toHaveBeenCalledWith("/health-control");
   });
 
   it("renders summary cards for the latest measurements", async () => {
@@ -142,6 +155,24 @@ describe("HomeScreen", () => {
     await waitFor(() => expect(screen.getByText("Sin alertas nuevas")).toBeTruthy());
   });
 
+  it("switches the notification bell icon when there are unread alerts", async () => {
+    mockApi({
+      alerts: [{ idAlertaIa: 1, motivoAlerta: "Presión elevada", recomendacionIa: "Consulta a tu médico" }],
+    });
+    renderWithProviders(<HomeScreen />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Tienes alertas sin leer")).toBeTruthy()
+    );
+  });
+
+  it("keeps the default bell icon when there are no unread alerts", async () => {
+    mockApi({ alerts: [] });
+    renderWithProviders(<HomeScreen />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("No tienes alertas nuevas")).toBeTruthy()
+    );
+  });
+
   it("navigates to the assistant and providers screens", async () => {
     mockApi();
     renderWithProviders(<HomeScreen />);
@@ -164,5 +195,40 @@ describe("HomeScreen", () => {
     await act(async () => refreshControl.props.onRefresh());
 
     expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
+  });
+
+  it("shows an offline banner when the backend can't be reached, but not for a normal 404", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.reject(offlineError());
+      if (path === "/api/measurements/history") {
+        return Promise.resolve([{ idControl: 1, idPaciente: 1, fechaHora: "2026-06-01", notas: null }]);
+      }
+      if (path === "/api/measurements/glucose/latest") return Promise.reject(notFound());
+      return Promise.resolve([]);
+    });
+    renderWithProviders(<HomeScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Sin conexión a internet o con el servidor."
+        )
+      ).toBeTruthy()
+    );
+  });
+
+  it("does not show the offline banner when all requests succeed or fail with a normal error", async () => {
+    mockApi({
+      patient: { nombre: "María" },
+      history: [{ idControl: 1, idPaciente: 1, fechaHora: "2026-06-01", notas: null }],
+    });
+    renderWithProviders(<HomeScreen />);
+
+    await waitFor(() => expect(screen.getByText("¡Hola, María!")).toBeTruthy());
+    expect(
+      screen.queryByText(
+        "Sin conexión a internet o con el servidor."
+      )
+    ).toBeNull();
   });
 });

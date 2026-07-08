@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { useState } from "react";
+import { Image as ExpoImage } from "expo-image";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { auth } from "@/config/firebase";
 
@@ -9,8 +11,11 @@ import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { FormSkeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/services/apiClient";
+import { areNotificationsEnabled, notificationsAvailable, setNotificationsEnabled } from "@/services/notifications";
+import { pickProfilePhoto, takeProfilePhoto, uploadProfilePhoto } from "@/services/profilePhoto";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme, useThemeMode } from "@/theme/ThemeContext";
@@ -25,6 +30,7 @@ type PatientRecord = {
   fechaNacimiento: string;
   telefonoPrincipal: string;
   telefonoSecundario: string | null;
+  fotoPerfilUrl: string | null;
 };
 
 /** Espejo de AddressDto del BFF. */
@@ -42,6 +48,18 @@ type DiseaseRecord = {
   nombreEnfermedad: string;
 };
 
+/**
+ * El BFF firma una URL de foto de perfil distinta en cada `GET /api/patients/me`
+ * (SAS de corta duración, ver ProfilePhotoService): la query string (`?sv=...&sig=...`)
+ * cambia cada vez aunque la foto sea la misma, lo que rompía el caché de
+ * imágenes basado en URL y hacía que se recargara visiblemente en cada visita
+ * a esta pantalla. Se usa la URL sin query string como `cacheKey` estable
+ * para expo-image, que sí soporta desacoplar la key de caché de la URI real.
+ */
+function baseBlobUrl(fotoPerfilUrl: string): string {
+  return fotoPerfilUrl.split("?")[0];
+}
+
 export default function ProfileScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
@@ -49,6 +67,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
+  const queryClient = useQueryClient();
+  const [pickingPhoto, setPickingPhoto] = useState(false);
 
   const patientQuery = useQuery({
     queryKey: queryKeys.patientMe,
@@ -65,6 +85,18 @@ export default function ProfileScreen() {
     queryFn: () => apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
     enabled,
   });
+  const notificationsEnabledQuery = useQuery({
+    queryKey: queryKeys.notificationsEnabled,
+    queryFn: areNotificationsEnabled,
+  });
+  const notificationsEnabled = notificationsEnabledQuery.data ?? true;
+
+  const toggleNotificationsMutation = useMutation({
+    mutationFn: setNotificationsEnabled,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notificationsEnabled });
+    },
+  });
 
   const loading =
     patientQuery.isLoading || addressesQuery.isLoading || diseasesQuery.isLoading;
@@ -80,6 +112,42 @@ export default function ProfileScreen() {
     diseasesQuery.refetch();
   }
 
+  const uploadPhotoMutation = useMutation({
+    mutationFn: uploadProfilePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.patientMe });
+    },
+    // El detalle técnico (404/500/etc.) solo queda en consola: al usuario se
+    // le muestra un mensaje genérico, nunca el error crudo del backend.
+    onError: (error) => {
+      console.error("Error al subir la foto de perfil:", error);
+      Alert.alert("Error", "No se pudo subir la foto de perfil.");
+    },
+  });
+
+  function handleChangePhoto() {
+    Alert.alert("Foto de perfil", "¿Cómo quieres elegir tu foto?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Tomar foto", onPress: () => runPicker(takeProfilePhoto) },
+      { text: "Elegir de galería", onPress: () => runPicker(pickProfilePhoto) },
+    ]);
+  }
+
+  async function runPicker(picker: () => Promise<string | null>) {
+    setPickingPhoto(true);
+    try {
+      const localUri = await picker();
+      if (localUri) {
+        uploadPhotoMutation.mutate(localUri);
+      }
+    } catch (error) {
+      console.error("Error al elegir la foto de perfil:", error);
+      Alert.alert("Error", "No se pudo abrir la cámara ni la galería.");
+    } finally {
+      setPickingPhoto(false);
+    }
+  }
+
   function handleLogout() {
     Alert.alert("Cerrar sesión", "¿Estás seguro que quieres salir?", [
       { text: "Cancelar", style: "cancel" },
@@ -91,7 +159,7 @@ export default function ProfileScreen() {
     return (
       <ScreenContainer scrollable>
         <ScreenHeader />
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <FormSkeleton rows={3} />
       </ScreenContainer>
     );
   }
@@ -100,9 +168,29 @@ export default function ProfileScreen() {
     <ScreenContainer scrollable refreshing={refreshing} onRefresh={handleRefresh}>
       <ScreenHeader />
       <View style={styles.header}>
-        <View style={styles.avatarWrap}>
-          <IconImage name="usuario" size={64} />
-        </View>
+        <Pressable
+          style={styles.avatarOuter}
+          onPress={handleChangePhoto}
+          disabled={pickingPhoto || uploadPhotoMutation.isPending}
+          accessibilityLabel="Cambiar foto de perfil"
+        >
+          <View style={styles.avatarWrap}>
+            {pickingPhoto || uploadPhotoMutation.isPending ? (
+              <ActivityIndicator color={theme.colors.primary} />
+            ) : patient?.fotoPerfilUrl ? (
+              <ExpoImage
+                source={{ uri: patient.fotoPerfilUrl, cacheKey: baseBlobUrl(patient.fotoPerfilUrl) }}
+                style={styles.avatarImage}
+                cachePolicy="disk"
+              />
+            ) : (
+              <IconImage name="usuario" size={64} />
+            )}
+          </View>
+          <View style={styles.avatarBadge}>
+            <IconImage name="editar" size={14} tone="white" />
+          </View>
+        </Pressable>
         <Text style={styles.name}>
           {patient ? `${patient.nombre} ${patient.apellidoPaterno}` : "Sin datos"}
         </Text>
@@ -149,10 +237,32 @@ export default function ProfileScreen() {
           <Switch
             value={mode === "dark"}
             onValueChange={toggleTheme}
+            accessibilityLabel="Tema oscuro"
             trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
             thumbColor={theme.colors.surface}
           />
         </View>
+
+        {notificationsAvailable ? (
+          <View style={[styles.preferenceRow, styles.preferenceRowSpaced]}>
+            <View style={styles.preferenceTextBlock}>
+              <Text style={styles.blockTitle}>Notificaciones</Text>
+              <Text style={styles.diseaseItem}>
+                {notificationsEnabled
+                  ? "Activadas: te avisamos cuando toca un medicamento"
+                  : "Desactivadas: no recibirás recordatorios de medicamentos"}
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={(value) => toggleNotificationsMutation.mutate(value)}
+              disabled={toggleNotificationsMutation.isPending}
+              accessibilityLabel="Notificaciones"
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.surface}
+            />
+          </View>
+        ) : null}
       </View>
 
       <AppButton
@@ -194,12 +304,16 @@ function DetailRow({
 
 function createStyles(theme: VitaCareThemeType) {
   return StyleSheet.create({
-  loader: {
-    marginTop: theme.spacing.xl,
-  },
   header: {
     alignItems: "center",
     gap: theme.spacing.sm,
+  },
+  // El círculo recorta la imagen (overflow: hidden); el badge vive un nivel
+  // afuera (en avatarOuter) para no quedar cortado por ese mismo recorte al
+  // posicionarse justo en el borde del círculo.
+  avatarOuter: {
+    width: 110,
+    height: 110,
   },
   avatarWrap: {
     width: 110,
@@ -208,6 +322,25 @@ function createStyles(theme: VitaCareThemeType) {
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    ...theme.shadow.card,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
     justifyContent: "center",
     alignItems: "center",
     ...theme.shadow.card,
@@ -255,8 +388,16 @@ function createStyles(theme: VitaCareThemeType) {
     alignItems: "center",
     justifyContent: "space-between",
   },
+  preferenceRowSpaced: {
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
   preferenceTextBlock: {
     gap: theme.spacing.xs,
+    flexShrink: 1,
+    paddingRight: theme.spacing.sm,
   },
   blockTitle: {
     color: theme.colors.secondary,

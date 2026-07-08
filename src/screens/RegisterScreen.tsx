@@ -17,9 +17,9 @@ import { PhoneInput } from "@/components/PhoneInput";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { auth } from "@/config/firebase";
-import { refreshAuthProfile, useAuth } from "@/context/AuthContext";
+import { refreshAuthProfile } from "@/context/AuthContext";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
-import { ApiError, apiPost } from "@/services/apiClient";
+import { apiPost } from "@/services/apiClient";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import {
@@ -51,12 +51,7 @@ type Step = 1 | 2 | 3;
 export default function RegisterScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
-  const authState = useAuth();
-  const isCompletingProfile = authState.status === "authenticated";
-  // Quien está completando perfil ya tiene cuenta de Firebase: se salta el paso de credenciales.
-  const [step, setStep] = useState<Step>(isCompletingProfile ? 2 : 1);
-  const totalSteps = isCompletingProfile ? 2 : 3;
-  const displayStep = isCompletingProfile ? step - 1 : step;
+  const [step, setStep] = useState<Step>(1);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -64,11 +59,13 @@ export default function RegisterScreen() {
 
   const credentialsForm = useForm<RegisterCredentialsValues>({
     resolver: zodResolver(registerCredentialsSchema),
+    mode: "onBlur",
     defaultValues: { email: "", password: "", confirmPassword: "" },
   });
 
   const personalForm = useForm<RegisterPersonalValues>({
     resolver: zodResolver(registerPersonalSchema),
+    mode: "onBlur",
     defaultValues: {
       rut: "",
       nombre: "",
@@ -81,6 +78,7 @@ export default function RegisterScreen() {
 
   const addressForm = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
+    mode: "onBlur",
     defaultValues: { regionId: "", comunaId: "", calle: "", numero: "" },
   });
 
@@ -117,9 +115,11 @@ export default function RegisterScreen() {
       });
       await refreshAuthProfile();
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "No se pudo registrar tu dirección.";
-      Alert.alert("Error al registrar tu dirección", message, [
+      // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
+      // se le muestra un mensaje genérico, nunca el error crudo del backend.
+      console.error("Error al registrar dirección:", error);
+      setLoading(false);
+      Alert.alert("Error al registrar tu dirección", "No se pudo registrar tu dirección.", [
         { text: "Reintentar", onPress: () => registerAddress(address) },
         { text: "Cancelar", style: "cancel" },
       ]);
@@ -141,14 +141,18 @@ export default function RegisterScreen() {
       // (que no es idempotente y respondería 409 con el mismo RUT).
       await registerAddress(address);
     } catch (error) {
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : "No se pudo completar tu registro de paciente.";
-      Alert.alert("Error al completar el registro", message, [
-        { text: "Reintentar", onPress: () => registerPatientProfile(personal, address) },
-        { text: "Cancelar", style: "cancel" },
-      ]);
+      // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
+      // se le muestra un mensaje genérico, nunca el error crudo del backend.
+      console.error("Error al completar registro de paciente:", error);
+      setLoading(false);
+      Alert.alert(
+        "Error al completar el registro",
+        "No se pudo completar tu registro de paciente. Intenta de nuevo.",
+        [
+          { text: "Reintentar", onPress: () => registerPatientProfile(personal, address) },
+          { text: "Cancelar", style: "cancel" },
+        ],
+      );
     }
   }
 
@@ -168,16 +172,12 @@ export default function RegisterScreen() {
     setStep(2);
   }
 
+  // No se apaga `loading` tras un registro exitoso: la pantalla se mantiene
+  // en estado de carga hasta que AppNavigator navegue a select-disease/home,
+  // para no mostrar el formulario "normal" por un instante antes de navegar.
+  // Sí se apaga en cada camino de error, para que el usuario pueda reintentar.
   async function handleRegister(address: AddressFormValues) {
     const personal = personalForm.getValues();
-
-    if (isCompletingProfile) {
-      setLoading(true);
-      await registerPatientProfile(personal, address);
-      setLoading(false);
-      return;
-    }
-
     const credentials = credentialsForm.getValues();
     setLoading(true);
     try {
@@ -196,12 +196,11 @@ export default function RegisterScreen() {
         "auth/invalid-email": "El correo ingresado no es válido.",
         "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
       };
+      setLoading(false);
       Alert.alert(
         "Error al registrarse",
         messages[error.code] ?? "Ocurrió un error. Intenta nuevamente."
       );
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -216,11 +215,9 @@ export default function RegisterScreen() {
       <ScreenHeader showBackButton title="Registrarse" />
       <BrandHeader logoStyle="vertical" />
       <View style={styles.header}>
-        <Text style={styles.title}>
-          {isCompletingProfile ? "Completa tu perfil" : "Crear cuenta"}
-        </Text>
+        <Text style={styles.title}>Crear cuenta</Text>
         <Text style={styles.subtitle}>
-          Paso {displayStep} de {totalSteps} — {stepTitles[step]}.
+          Paso {step} de 3 — {stepTitles[step]}.
         </Text>
       </View>
 
@@ -388,9 +385,7 @@ export default function RegisterScreen() {
             />
 
             <AppButton title="Siguiente" onPress={handleNextFromPersonal} />
-            {isCompletingProfile ? null : (
-              <AppButton title="Atrás" variant="outline" onPress={handleBackToCredentials} />
-            )}
+            <AppButton title="Atrás" variant="outline" onPress={handleBackToCredentials} />
           </>
         )}
 
@@ -455,13 +450,7 @@ export default function RegisterScreen() {
             />
 
             <AppButton
-              title={
-                loading
-                  ? "Guardando..."
-                  : isCompletingProfile
-                    ? "Completar registro"
-                    : "Registrarse"
-              }
+              title={loading ? "Guardando..." : "Registrarse"}
               onPress={addressForm.handleSubmit(handleRegister)}
               disabled={loading}
             />

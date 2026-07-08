@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconImage } from "@/components/IconImage";
+import { InlineErrorNotice } from "@/components/InlineErrorNotice";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet, apiPut } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
@@ -50,6 +52,20 @@ export default function AlertsRecommendationsScreen() {
     queryFn: () => apiGet<RecommendationRecord[]>("/api/recommendations"),
     enabled,
   });
+
+  const alertsFailed = alertsQuery.isError;
+  const recommendationsFailed = recommendationsQuery.isError;
+  const hasError = alertsFailed || recommendationsFailed;
+
+  function errorMessage(): string {
+    if (alertsFailed && recommendationsFailed) {
+      return "No se pudieron cargar las alertas ni las recomendaciones. Intenta de nuevo más tarde.";
+    }
+    if (alertsFailed) {
+      return "No se pudieron cargar las alertas. Intenta de nuevo más tarde.";
+    }
+    return "No se pudieron cargar las recomendaciones. Intenta de nuevo más tarde.";
+  }
 
   function invalidateAlerts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.alertsAll });
@@ -97,17 +113,28 @@ export default function AlertsRecommendationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={theme.colors.primary} style={styles.loader} />
+        <View style={styles.list} testID="alerts-skeleton">
+          {[1, 2, 3].map((key) => (
+            <View key={key} style={styles.card}>
+              <Skeleton width="50%" height={16} />
+              <Skeleton width="80%" height={13} />
+            </View>
+          ))}
+        </View>
       ) : (
         <>
+          {hasError ? (
+            <InlineErrorNotice
+              message={errorMessage()}
+              onRetry={handleRefresh}
+              retrying={refreshing}
+            />
+          ) : null}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Alertas IA</Text>
             <View style={styles.list}>
-              {alertsQuery.isError ? (
-                <Text style={styles.errorText}>
-                  No se pudieron cargar las alertas. Intenta de nuevo más tarde.
-                </Text>
-              ) : alerts.length === 0 ? (
+              {alertsFailed ? null : alerts.length === 0 ? (
                 <Text style={styles.emptyText}>No tienes alertas registradas.</Text>
               ) : (
                 alerts.map((item) => (
@@ -144,11 +171,7 @@ export default function AlertsRecommendationsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recomendaciones alimentarias</Text>
             <View style={styles.list}>
-              {recommendationsQuery.isError ? (
-                <Text style={styles.errorText}>
-                  No se pudieron cargar las recomendaciones. Intenta de nuevo más tarde.
-                </Text>
-              ) : recommendations.length === 0 ? (
+              {recommendationsFailed ? null : recommendations.length === 0 ? (
                 <Text style={styles.emptyText}>Aún no tienes recomendaciones generadas.</Text>
               ) : (
                 recommendations.map((item) => (
@@ -197,9 +220,6 @@ function createStyles(theme: VitaCareThemeType) {
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
   },
-  loader: {
-    marginTop: theme.spacing.xl,
-  },
   section: {
     gap: theme.spacing.sm,
   },
@@ -216,12 +236,6 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.body,
     fontFamily: theme.typography.fontFamily,
-  },
-  errorText: {
-    color: "#B54444",
-    fontSize: theme.typography.body,
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: "700",
   },
   card: {
     borderRadius: theme.radius.lg,
