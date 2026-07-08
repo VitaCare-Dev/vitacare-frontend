@@ -11,6 +11,7 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { auth } from "@/config/firebase";
+import { signInWithGoogle } from "@/services/googleAuth";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import { loginSchema, type LoginFormValues } from "@/utils/formSchemas";
@@ -21,6 +22,19 @@ export default function LoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Error al iniciar sesión con Google:", error);
+      Alert.alert("Error", "No se pudo iniciar sesión con Google.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   const {
     control,
@@ -106,6 +120,19 @@ export default function LoginScreen() {
           disabled={loading}
         />
 
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>o</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <AppButton
+          title={googleLoading ? "Ingresando..." : "Continuar con Google"}
+          variant="outline"
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        />
+
         <Pressable onPress={() => router.push("/forgot-password")}>
           <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
         </Pressable>
@@ -137,6 +164,21 @@ function createStyles(theme: VitaCareThemeType) {
   form: {
     marginTop: theme.spacing.xl,
     gap: theme.spacing.md,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  dividerText: {
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
+    fontFamily: theme.typography.fontFamily,
   },
   link: {
     textAlign: "right",

@@ -3,6 +3,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
+import { auth } from "@/config/firebase";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
 import { apiPost } from "@/services/apiClient";
 import RegisterScreen from "@/screens/RegisterScreen";
@@ -78,6 +79,7 @@ describe("RegisterScreen", () => {
 
   afterEach(() => {
     (Alert.alert as jest.Mock).mockRestore();
+    (auth as { currentUser: unknown }).currentUser = null;
   });
 
   it(
@@ -95,6 +97,11 @@ describe("RegisterScreen", () => {
     mockCreateUser.mockResolvedValue({ user: { uid: "u1" } });
     mockUpdateProfile.mockResolvedValue(undefined);
     mockApiPost.mockResolvedValue({});
+    // El éxito muestra un Alert de confirmación; refreshAuthProfile() (lo que
+    // dispara la navegación) solo se llama al presionar "Continuar" ahí.
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[0]?.onPress?.();
+    });
     renderWithProviders(<RegisterScreen />);
 
     await fillCredentialsStep();
@@ -119,12 +126,41 @@ describe("RegisterScreen", () => {
         expect.objectContaining({ calle: "Av. Providencia", numero: "456" })
       )
     );
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "¡Cuenta creada!",
+      "Ahora selecciona la enfermedad que quieres seguir.",
+      expect.anything()
+    );
     await waitFor(() => expect(mockRefreshAuthProfile).toHaveBeenCalled());
 
     // Tras el éxito, la pantalla se mantiene en estado de carga (no vuelve a
     // mostrar "Registrarse") hasta que AppNavigator navegue fuera de esta
     // pantalla, para no mostrar el formulario "normal" por un instante.
     expect(screen.getByText("Guardando...")).toBeTruthy();
+  });
+
+  it("does not call refreshAuthProfile (and so does not navigate) until the user dismisses the success alert", async () => {
+    mockCreateUser.mockResolvedValue({ user: { uid: "u1" } });
+    mockUpdateProfile.mockResolvedValue(undefined);
+    mockApiPost.mockResolvedValue({});
+    // A diferencia del test anterior, acá el mock de Alert NO presiona el
+    // botón: simula al usuario viendo el mensaje sin haberlo cerrado todavía.
+    renderWithProviders(<RegisterScreen />);
+
+    await fillCredentialsStep();
+    await fillPersonalStep();
+    await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+    await fillAddressStep();
+    fireEvent.press(screen.getAllByText("Registrarse").slice(-1)[0]);
+
+    await waitFor(() =>
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/api/patients/me/addresses",
+        expect.objectContaining({ calle: "Av. Providencia", numero: "456" })
+      )
+    );
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+    expect(mockRefreshAuthProfile).not.toHaveBeenCalled();
   });
 
   it("shows a friendly error when the email is already registered", async () => {
@@ -175,5 +211,44 @@ describe("RegisterScreen", () => {
 
     fireEvent.press(screen.getByText("Atrás"));
     await waitFor(() => expect(screen.getByText("Paso 1 de 3 — Tu cuenta.")).toBeTruthy());
+  });
+
+  describe("when a Firebase user is already authenticated (ej. recién inició sesión con Google)", () => {
+    beforeEach(() => {
+      (auth as { currentUser: unknown }).currentUser = { uid: "g1", displayName: "María Pérez" };
+    });
+
+    it("skips the credentials step and starts at step 2, pre-filling the name", async () => {
+      renderWithProviders(<RegisterScreen />);
+      await waitFor(() => expect(screen.getByText("Paso 2 de 3 — Tus datos personales.")).toBeTruthy());
+      expect(screen.queryByPlaceholderText("correo@vitacare.cl")).toBeNull();
+      expect(screen.getByDisplayValue("María Pérez")).toBeTruthy();
+    });
+
+    it("does not show an 'Atrás' button on step 2 (there is no step 1 to go back to)", async () => {
+      renderWithProviders(<RegisterScreen />);
+      await waitFor(() => expect(screen.getByText("Paso 2 de 3 — Tus datos personales.")).toBeTruthy());
+      expect(screen.queryByText("Atrás")).toBeNull();
+    });
+
+    it("does not create a new Firebase account, only updates the existing user's profile", async () => {
+      mockUpdateProfile.mockResolvedValue(undefined);
+      mockApiPost.mockResolvedValue({});
+      renderWithProviders(<RegisterScreen />);
+
+      await waitFor(() => expect(screen.getByText("Paso 2 de 3 — Tus datos personales.")).toBeTruthy());
+      await fillPersonalStep();
+      await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+      await fillAddressStep();
+      fireEvent.press(screen.getAllByText("Registrarse").slice(-1)[0]);
+
+      await waitFor(() =>
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          { uid: "g1", displayName: "María Pérez" },
+          expect.objectContaining({ displayName: "María Pérez" })
+        )
+      );
+      expect(mockCreateUser).not.toHaveBeenCalled();
+    });
   });
 });

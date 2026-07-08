@@ -51,7 +51,11 @@ type Step = 1 | 2 | 3;
 export default function RegisterScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
-  const [step, setStep] = useState<Step>(1);
+  // Si ya hay un usuario de Firebase autenticado al entrar acá (ej. recién
+  // inició sesión con Google), la cuenta ya existe: se salta el paso de
+  // crear credenciales y se empieza directo pidiendo los datos del paciente.
+  const isAlreadyAuthenticated = auth.currentUser != null;
+  const [step, setStep] = useState<Step>(isAlreadyAuthenticated ? 2 : 1);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -68,7 +72,10 @@ export default function RegisterScreen() {
     mode: "onBlur",
     defaultValues: {
       rut: "",
-      nombre: "",
+      // Google entrega un solo "nombre completo": se precarga ahí para que
+      // el usuario no tenga que retipearlo, pero queda editable (no separa
+      // confiablemente nombre de apellidos).
+      nombre: auth.currentUser?.displayName ?? "",
       apellidoPaterno: "",
       apellidoMaterno: "",
       telefono: "",
@@ -113,7 +120,13 @@ export default function RegisterScreen() {
         comuna: comunaName,
         region: regionName,
       });
-      await refreshAuthProfile();
+      // refreshAuthProfile() se llama recién al presionar "Continuar": eso es
+      // lo que dispara la navegación automática a select-disease (via
+      // AppNavigator), así el usuario ve el mensaje de éxito antes de que la
+      // pantalla cambie, no encima de la siguiente pantalla.
+      Alert.alert("¡Cuenta creada!", "Ahora selecciona la enfermedad que quieres seguir.", [
+        { text: "Continuar", onPress: () => refreshAuthProfile() },
+      ]);
     } catch (error) {
       // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
       // se le muestra un mensaje genérico, nunca el error crudo del backend.
@@ -178,17 +191,22 @@ export default function RegisterScreen() {
   // Sí se apaga en cada camino de error, para que el usuario pueda reintentar.
   async function handleRegister(address: AddressFormValues) {
     const personal = personalForm.getValues();
-    const credentials = credentialsForm.getValues();
     setLoading(true);
     try {
-      const { user } = await createUserWithEmailAndPassword(
-        auth,
-        credentials.email.trim(),
-        credentials.password
-      );
-      await updateProfile(user, {
-        displayName: `${personal.nombre.trim()} ${personal.apellidoPaterno.trim()}`.trim(),
-      });
+      const displayName = `${personal.nombre.trim()} ${personal.apellidoPaterno.trim()}`.trim();
+      if (auth.currentUser) {
+        // Ya autenticado (ej. recién inició sesión con Google): la cuenta de
+        // Firebase ya existe, no hay que crearla de nuevo.
+        await updateProfile(auth.currentUser, { displayName });
+      } else {
+        const credentials = credentialsForm.getValues();
+        const { user } = await createUserWithEmailAndPassword(
+          auth,
+          credentials.email.trim(),
+          credentials.password
+        );
+        await updateProfile(user, { displayName });
+      }
       await registerPatientProfile(personal, address);
     } catch (error: any) {
       const messages: Record<string, string> = {
@@ -385,7 +403,9 @@ export default function RegisterScreen() {
             />
 
             <AppButton title="Siguiente" onPress={handleNextFromPersonal} />
-            <AppButton title="Atrás" variant="outline" onPress={handleBackToCredentials} />
+            {!isAlreadyAuthenticated ? (
+              <AppButton title="Atrás" variant="outline" onPress={handleBackToCredentials} />
+            ) : null}
           </>
         )}
 

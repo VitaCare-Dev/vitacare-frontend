@@ -69,10 +69,15 @@ describe("AppNavigator", () => {
 
   it(
     "signs out and redirects to login when authenticated without a patient outside the " +
-      "register flow (real signup keeps the user on /register, so this only happens for an " +
-      "orphaned Firebase account created outside the app)",
+      "register flow, for an account that already signed in before (a real orphaned Firebase " +
+      "account created outside the app, not a fresh Google/email sign-up)",
     () => {
-      mockAuthState = { status: "authenticated", hasProfile: false, hasDisease: false };
+      mockAuthState = {
+        status: "authenticated",
+        hasProfile: false,
+        hasDisease: false,
+        user: { metadata: { creationTime: "2026-01-01", lastSignInTime: "2026-07-08" } },
+      };
       mockSegments = ["(tabs)"];
       renderNavigator();
       expect(mockSignOut).toHaveBeenCalled();
@@ -80,8 +85,30 @@ describe("AppNavigator", () => {
     }
   );
 
+  it(
+    "redirects to /register instead of signing out when it's the account's very first sign-in " +
+      "(ej. recién se autenticó con Google y todavía no existe el paciente)",
+    () => {
+      mockAuthState = {
+        status: "authenticated",
+        hasProfile: false,
+        hasDisease: false,
+        user: { metadata: { creationTime: "2026-07-08", lastSignInTime: "2026-07-08" } },
+      };
+      mockSegments = ["(tabs)"];
+      renderNavigator();
+      expect(mockSignOut).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/register");
+    }
+  );
+
   it("does not sign out while the real signup flow is still on the register screen", () => {
-    mockAuthState = { status: "authenticated", hasProfile: false, hasDisease: false };
+    mockAuthState = {
+      status: "authenticated",
+      hasProfile: false,
+      hasDisease: false,
+      user: { metadata: { creationTime: "2026-01-01", lastSignInTime: "2026-07-08" } },
+    };
     mockSegments = ["(auth)", "register"];
     renderNavigator();
     expect(mockSignOut).not.toHaveBeenCalled();

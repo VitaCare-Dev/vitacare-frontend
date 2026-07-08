@@ -31,14 +31,23 @@ export function AppNavigator() {
       router.replace("/(auth)/login");
     } else if (authState.status === "authenticated") {
       if (!authState.hasProfile && !onRegisterScreen) {
-        // En el uso real, un usuario autenticado sin paciente registrado solo
-        // ocurre mientras el flujo de registro está en curso (y ahí
-        // onRegisterScreen ya lo cubre). Fuera de ese flujo, es un estado que
-        // no debería alcanzarse en la práctica (ej. una cuenta de Firebase
-        // creada manualmente sin pasar por la app): se cierra la sesión y se
-        // vuelve a Login en vez de ofrecer un flujo de "completar perfil".
-        signOut(auth);
-        router.replace("/(auth)/login");
+        // Con email/contraseña, un usuario autenticado sin paciente
+        // registrado solo ocurre mientras el flujo de registro está en curso
+        // (onRegisterScreen ya lo cubre). Pero con Google, Firebase crea la
+        // cuenta al vuelo la primera vez que alguien inicia sesión — ahí
+        // "autenticado sin perfil" es legítimo y esperado, no una anomalía.
+        // Se distingue por creationTime === lastSignInTime (solo son iguales
+        // en el primer inicio de sesión de esa cuenta): si es la primera vez,
+        // se manda a completar el registro; si no, es una cuenta que ya se
+        // usó antes sin terminar de registrarse (huérfana real) y se cierra
+        // la sesión, igual que antes.
+        const { creationTime, lastSignInTime } = authState.user.metadata;
+        if (creationTime === lastSignInTime) {
+          router.replace("/register");
+        } else {
+          signOut(auth);
+          router.replace("/(auth)/login");
+        }
       } else if (authState.hasProfile && !authState.hasDisease && !onSelectDiseaseScreen) {
         router.replace("/select-disease");
       } else if (authState.hasProfile && authState.hasDisease && inAuthGroup) {

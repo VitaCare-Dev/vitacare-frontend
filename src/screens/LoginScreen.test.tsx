@@ -17,11 +17,17 @@ jest.mock("firebase/auth", () => ({
   signInWithEmailAndPassword: (...args: unknown[]) => mockSignIn(...args),
 }));
 
+const mockSignInWithGoogle = jest.fn();
+jest.mock("@/services/googleAuth", () => ({
+  signInWithGoogle: () => mockSignInWithGoogle(),
+}));
+
 describe("LoginScreen", () => {
   beforeEach(() => {
     mockPush.mockClear();
     mockReplace.mockClear();
     mockSignIn.mockReset();
+    mockSignInWithGoogle.mockReset();
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
   });
 
@@ -101,5 +107,25 @@ describe("LoginScreen", () => {
     renderWithProviders(<LoginScreen />);
     fireEvent.press(screen.getByText("Registrarse"));
     expect(mockPush).toHaveBeenCalledWith("/register");
+  });
+
+  it("signs in with Google when the button is pressed", async () => {
+    mockSignInWithGoogle.mockResolvedValue(true);
+    renderWithProviders(<LoginScreen />);
+
+    fireEvent.press(screen.getByText("Continuar con Google"));
+
+    await waitFor(() => expect(mockSignInWithGoogle).toHaveBeenCalled());
+  });
+
+  it("shows an error alert when Google sign-in fails", async () => {
+    mockSignInWithGoogle.mockRejectedValue(new Error("boom"));
+    renderWithProviders(<LoginScreen />);
+
+    fireEvent.press(screen.getByText("Continuar con Google"));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith("Error", "No se pudo iniciar sesión con Google.")
+    );
   });
 });
