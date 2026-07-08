@@ -45,10 +45,13 @@ const vitalsRecord = {
 
 function mockApi(overrides: Record<string, unknown> = {}) {
   mockApiGet.mockImplementation((path: string) => {
-    if (path === "/api/measurements/glucose") return Promise.resolve(overrides.glucose ?? []);
-    if (path === "/api/measurements/lipids") return Promise.resolve(overrides.lipids ?? []);
-    if (path === "/api/measurements/vitals") return Promise.resolve(overrides.vitals ?? []);
-    return Promise.resolve([]);
+    if (path.startsWith("/api/measurements/glucose"))
+      return Promise.resolve({ content: overrides.glucose ?? [] });
+    if (path.startsWith("/api/measurements/lipids"))
+      return Promise.resolve({ content: overrides.lipids ?? [] });
+    if (path.startsWith("/api/measurements/vitals"))
+      return Promise.resolve({ content: overrides.vitals ?? [] });
+    return Promise.resolve({ content: [] });
   });
 }
 

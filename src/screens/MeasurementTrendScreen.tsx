@@ -25,6 +25,12 @@ type VitalsRecord = {
 };
 type LipidsRecord = { fechaHora: string; colesterolTotal: number };
 
+/** Espejo de PageResponseDto del BFF. */
+type PageResponse<T> = { content: T[] };
+
+/** El gráfico de tendencia quiere el historial completo, no una sola página. */
+const TREND_FETCH_SIZE = 1000;
+
 const METRIC_CONFIG: Record<MeasurementMetric, { title: string; unit: string }> = {
   glucosa: { title: "Glucosa", unit: "mg/dL" },
   temperatura: { title: "Temperatura", unit: "°C" },
@@ -71,18 +77,21 @@ export default function MeasurementTrendScreen() {
   const enabled = authState.status === "authenticated";
 
   const glucoseQuery = useQuery({
-    queryKey: queryKeys.glucoseList,
-    queryFn: () => apiGet<GlucoseRecord[]>("/api/measurements/glucose"),
+    queryKey: [...queryKeys.glucoseList, TREND_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<GlucoseRecord>>(`/api/measurements/glucose?page=0&size=${TREND_FETCH_SIZE}`),
     enabled: enabled && metric === "glucosa",
   });
   const vitalsQuery = useQuery({
-    queryKey: queryKeys.vitalsList,
-    queryFn: () => apiGet<VitalsRecord[]>("/api/measurements/vitals"),
+    queryKey: [...queryKeys.vitalsList, TREND_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<VitalsRecord>>(`/api/measurements/vitals?page=0&size=${TREND_FETCH_SIZE}`),
     enabled: enabled && (metric === "temperatura" || metric === "peso" || metric === "presion"),
   });
   const lipidsQuery = useQuery({
-    queryKey: queryKeys.lipidsList,
-    queryFn: () => apiGet<LipidsRecord[]>("/api/measurements/lipids"),
+    queryKey: [...queryKeys.lipidsList, TREND_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<LipidsRecord>>(`/api/measurements/lipids?page=0&size=${TREND_FETCH_SIZE}`),
     enabled: enabled && metric === "colesterolTotal",
   });
 
@@ -92,16 +101,16 @@ export default function MeasurementTrendScreen() {
   let diastolicPoints: TrendPoint[] | null = null;
 
   if (metric === "glucosa") {
-    points = toPoints(glucoseQuery.data, (item) => item.glucosa);
+    points = toPoints(glucoseQuery.data?.content, (item) => item.glucosa);
   } else if (metric === "temperatura") {
-    points = toPoints(vitalsQuery.data, (item) => item.temperatura);
+    points = toPoints(vitalsQuery.data?.content, (item) => item.temperatura);
   } else if (metric === "peso") {
-    points = toPoints(vitalsQuery.data, (item) => item.peso);
+    points = toPoints(vitalsQuery.data?.content, (item) => item.peso);
   } else if (metric === "colesterolTotal") {
-    points = toPoints(lipidsQuery.data, (item) => item.colesterolTotal);
+    points = toPoints(lipidsQuery.data?.content, (item) => item.colesterolTotal);
   } else if (metric === "presion") {
-    points = toPoints(vitalsQuery.data, (item) => item.presionSistolica);
-    diastolicPoints = toPoints(vitalsQuery.data, (item) => item.presionDiastolica);
+    points = toPoints(vitalsQuery.data?.content, (item) => item.presionSistolica);
+    diastolicPoints = toPoints(vitalsQuery.data?.content, (item) => item.presionDiastolica);
   }
 
   return (
@@ -138,7 +147,10 @@ export default function MeasurementTrendScreen() {
               />
             </>
           ) : (
-            <TrendBarChart points={points} range={METRIC_RANGE[metric as Exclude<MeasurementMetric, "presion">]} />
+            <TrendBarChart
+              points={points}
+              range={metric === "presion" ? MEASUREMENT_RANGES.presionSistolica : METRIC_RANGE[metric]}
+            />
           )}
         </View>
       )}

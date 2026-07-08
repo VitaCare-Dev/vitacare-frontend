@@ -33,6 +33,12 @@ type VitalsRecord = MeasurementBase & {
   peso: number;
 };
 
+/** Espejo de PageResponseDto del BFF. */
+type PageResponse<T> = { content: T[] };
+
+/** El detalle busca el control por id entre todos los registros, no una sola página. */
+const DETAIL_FETCH_SIZE = 1000;
+
 function formatDateTime(fechaHora: string): string {
   const date = new Date(fechaHora);
   return `${date.toLocaleDateString("es-CL")} · ${date.toLocaleTimeString("es-CL", {
@@ -52,26 +58,29 @@ export default function MeasurementDetailScreen() {
   const enabled = authState.status === "authenticated";
 
   const glucoseQuery = useQuery({
-    queryKey: queryKeys.glucoseList,
-    queryFn: () => apiGet<GlucoseRecord[]>("/api/measurements/glucose"),
+    queryKey: [...queryKeys.glucoseList, DETAIL_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<GlucoseRecord>>(`/api/measurements/glucose?page=0&size=${DETAIL_FETCH_SIZE}`),
     enabled,
   });
   const lipidsQuery = useQuery({
-    queryKey: queryKeys.lipidsList,
-    queryFn: () => apiGet<LipidsRecord[]>("/api/measurements/lipids"),
+    queryKey: [...queryKeys.lipidsList, DETAIL_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<LipidsRecord>>(`/api/measurements/lipids?page=0&size=${DETAIL_FETCH_SIZE}`),
     enabled,
   });
   const vitalsQuery = useQuery({
-    queryKey: queryKeys.vitalsList,
-    queryFn: () => apiGet<VitalsRecord[]>("/api/measurements/vitals"),
+    queryKey: [...queryKeys.vitalsList, DETAIL_FETCH_SIZE],
+    queryFn: () =>
+      apiGet<PageResponse<VitalsRecord>>(`/api/measurements/vitals?page=0&size=${DETAIL_FETCH_SIZE}`),
     enabled,
   });
 
   const loading = glucoseQuery.isLoading || lipidsQuery.isLoading || vitalsQuery.isLoading;
 
-  const glucose = (glucoseQuery.data ?? []).find((item) => item.idControl === targetId) ?? null;
-  const lipids = (lipidsQuery.data ?? []).find((item) => item.idControl === targetId) ?? null;
-  const vitals = (vitalsQuery.data ?? []).find((item) => item.idControl === targetId) ?? null;
+  const glucose = (glucoseQuery.data?.content ?? []).find((item) => item.idControl === targetId) ?? null;
+  const lipids = (lipidsQuery.data?.content ?? []).find((item) => item.idControl === targetId) ?? null;
+  const vitals = (vitalsQuery.data?.content ?? []).find((item) => item.idControl === targetId) ?? null;
   const base = glucose ?? lipids ?? vitals;
 
   function invalidateMeasurements() {
