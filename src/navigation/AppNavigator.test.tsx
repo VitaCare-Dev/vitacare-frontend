@@ -68,9 +68,9 @@ describe("AppNavigator", () => {
   });
 
   it(
-    "signs out and redirects to login when authenticated without a patient outside the " +
-      "register flow, for an account that already signed in before (a real orphaned Firebase " +
-      "account created outside the app, not a fresh Google/email sign-up)",
+    "redirects to /register (without signing out) when authenticated without a patient, even " +
+      "for an account that already signed in before — antes se cerraba la sesión de esas " +
+      "cuentas 'huérfanas', lo que las dejaba bloqueadas para siempre sin poder registrarse",
     () => {
       mockAuthState = {
         status: "authenticated",
@@ -80,13 +80,13 @@ describe("AppNavigator", () => {
       };
       mockSegments = ["(tabs)"];
       renderNavigator();
-      expect(mockSignOut).toHaveBeenCalled();
-      expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
+      expect(mockSignOut).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/register");
     }
   );
 
   it(
-    "redirects to /register instead of signing out when it's the account's very first sign-in " +
+    "redirects to /register when it's the account's very first sign-in " +
       "(ej. recién se autenticó con Google y todavía no existe el paciente)",
     () => {
       mockAuthState = {

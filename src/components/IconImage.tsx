@@ -12,6 +12,7 @@ export type IconName =
   | "corazon"
   | "editar"
   | "glucosa"
+  | "google"
   | "haz-de-sonrisa"
   | "home"
   | "insulina"
@@ -51,6 +52,8 @@ const greenIcons: Record<IconName, number> = {
   corazon: require("../../assets/icon/iconos/verdes/corazon.png"),
   editar: require("../../assets/icon/iconos/verdes/editarverde.png"),
   glucosa: require("../../assets/icon/iconos/verdes/glucosa.png"),
+  // Logo de Google: a color, no tiene variante verde/blanca (usa el mismo archivo en ambos tonos).
+  google: require("../../assets/icon/iconos/blancos/google.png"),
   "haz-de-sonrisa": require("../../assets/icon/iconos/verdes/haz-de-sonrisa (1).png"),
   home: require("../../assets/icon/iconos/verdes/home.png"),
   insulina: require("../../assets/icon/iconos/verdes/insulina.png"),
@@ -82,6 +85,7 @@ const whiteIcons: Record<IconName, number> = {
   corazon: require("../../assets/icon/iconos/blancos/corazon.png"),
   editar: require("../../assets/icon/iconos/blancos/editarblanco.png"),
   glucosa: require("../../assets/icon/iconos/blancos/glucosa.png"),
+  google: require("../../assets/icon/iconos/blancos/google.png"),
   "haz-de-sonrisa": require("../../assets/icon/iconos/blancos/haz-de-sonrisa.png"),
   home: require("../../assets/icon/iconos/blancos/home.png"),
   insulina: require("../../assets/icon/iconos/blancos/insulina.png"),

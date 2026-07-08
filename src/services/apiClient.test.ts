@@ -1,5 +1,5 @@
 import { auth } from "@/config/firebase";
-import { apiDelete, ApiError, apiGet, apiPatch, apiPost, apiPut } from "@/services/apiClient";
+import { apiDelete, ApiError, apiGet, apiPatch, apiPost, apiPut, nullOn404 } from "@/services/apiClient";
 
 jest.mock("@/config/firebase");
 
@@ -122,6 +122,25 @@ describe("apiClient", () => {
       status: 0,
       message:
         "Tiempo de espera agotado al llamar /api/patients/me. Verifica tu conexión o intenta de nuevo.",
+    });
+  });
+
+  describe("nullOn404", () => {
+    it("returns the data untouched on success", async () => {
+      await expect(nullOn404(Promise.resolve([{ id: 1 }]))).resolves.toEqual([{ id: 1 }]);
+    });
+
+    it("maps a 404 to null (the backend confirmed the data does not exist)", async () => {
+      await expect(nullOn404(Promise.reject(new ApiError(404, "not found")))).resolves.toBeNull();
+    });
+
+    it("re-throws any other error so the screen can show 'no se pudo cargar'", async () => {
+      await expect(nullOn404(Promise.reject(new ApiError(500, "boom")))).rejects.toMatchObject({
+        status: 500,
+      });
+      await expect(nullOn404(Promise.reject(new Error("network down")))).rejects.toThrow(
+        "network down"
+      );
     });
   });
 });

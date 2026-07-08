@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { Image as ExpoImage } from "expo-image";
 import { Alert, RefreshControl } from "react-native";
 
-import { apiGet } from "@/services/apiClient";
+import { ApiError, apiGet } from "@/services/apiClient";
 import ProfileScreen from "@/screens/ProfileScreen";
 import { renderWithProviders } from "@/test-utils/renderWithProviders";
 
@@ -140,6 +140,33 @@ describe("ProfileScreen", () => {
     renderWithProviders(<ProfileScreen />);
     await waitFor(() => expect(screen.getByText("Sin dirección registrada")).toBeTruthy());
     expect(screen.getByText("Sin enfermedades registradas")).toBeTruthy();
+  });
+
+  it("shows honest inline errors (not 'sin datos') when addresses/diseases fail with a non-404", async () => {
+    // Un 500/red caída NO debe mostrarse como "Sin dirección registrada":
+    // eso es un dato confirmado, y acá el estado real es "no se pudo verificar".
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.resolve(patient);
+      return Promise.reject(new ApiError(500, "backend caído"));
+    });
+    renderWithProviders(<ProfileScreen />);
+
+    await waitFor(() => expect(screen.getByText("No pudimos cargar tu dirección.")).toBeTruthy());
+    expect(screen.getByText("No pudimos cargar tus enfermedades.")).toBeTruthy();
+    expect(screen.queryByText("Sin dirección registrada")).toBeNull();
+    expect(screen.queryByText("Sin enfermedades registradas")).toBeNull();
+  });
+
+  it("treats a 404 from addresses as confirmed 'no data', not as an error", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.resolve(patient);
+      if (path === "/api/patients/me/diseases") return Promise.resolve([disease]);
+      return Promise.reject(new ApiError(404, "not found"));
+    });
+    renderWithProviders(<ProfileScreen />);
+
+    await waitFor(() => expect(screen.getByText("Sin dirección registrada")).toBeTruthy());
+    expect(screen.queryByText("No pudimos cargar tu dirección.")).toBeNull();
   });
 
   it("navigates to medical info and providers screens", async () => {

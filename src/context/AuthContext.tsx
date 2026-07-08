@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { auth } from "@/config/firebase";
+import { queryClient } from "@/config/queryClient";
 import { ApiError, apiGet } from "@/services/apiClient";
 
 type AuthState =
@@ -41,17 +42,35 @@ let currentSetState: React.Dispatch<React.SetStateAction<AuthState>> | null = nu
  */
 let checkSequence = 0;
 
-async function checkHasProfile(): Promise<boolean> {
-  try {
-    await apiGet("/api/patients/me");
-    return true;
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return false;
+/**
+ * Verifica si un recurso del paciente existe: `true` si el GET responde,
+ * `false` solo si el backend confirma con un 404 que no existe.
+ *
+ * Ante un error transitorio (red, 5xx) se reintenta una vez — un parpadeo de
+ * conexión no debería decidir el gating de navegación. Si el reintento
+ * también falla, se asume `true` (optimista): la alternativa sería mandar a
+ * un usuario ya registrado a la pantalla de registro por un problema de red,
+ * que es peor. Las pantallas muestran su propio estado de error honesto
+ * ("no se pudo cargar" / barra offline), así que el optimismo de este check
+ * no le afirma datos falsos al usuario.
+ */
+async function endpointExists(path: string, attempts = 2): Promise<boolean> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      await apiGet(path);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return false;
+      }
+      // Transitorio: probar de nuevo; si se agotan los intentos, optimista.
     }
-    // Error transitorio (red, 5xx): no bloquear a un usuario ya registrado.
-    return true;
   }
+  return true;
+}
+
+function checkHasProfile(): Promise<boolean> {
+  return endpointExists("/api/patients/me");
 }
 
 /**
@@ -59,16 +78,8 @@ async function checkHasProfile(): Promise<boolean> {
  * GET /api/patients/me/thresholds solo devuelve datos si ya se registró una
  * enfermedad crónica (los umbrales se derivan de ella) — se usa como proxy.
  */
-async function checkHasDisease(): Promise<boolean> {
-  try {
-    await apiGet("/api/patients/me/thresholds");
-    return true;
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return false;
-    }
-    return true;
-  }
+function checkHasDisease(): Promise<boolean> {
+  return endpointExists("/api/patients/me/thresholds");
 }
 
 async function checkProfileAndDisease(): Promise<{ hasProfile: boolean; hasDisease: boolean }> {
@@ -118,6 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         });
       } else {
+        // Al quedar sin sesión (logout o cuenta eliminada) se borra todo el
+        // caché de datos: con staleTime de 5 min, si otra persona inicia
+        // sesión en el mismo teléfono dentro de esa ventana, vería los datos
+        // médicos del usuario anterior servidos directo desde el caché.
+        queryClient.clear();
         setState({ status: "unauthenticated" });
       }
     });

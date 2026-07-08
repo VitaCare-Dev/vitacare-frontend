@@ -21,11 +21,18 @@ export function formatChileanPhone(rawDigits: string): string {
  * Extrae solo los 8 dígitos editables del celular a partir de cualquier
  * texto (un valor completo "+56 9 XXXX XXXX", o dígitos sueltos que el
  * usuario esté tipeando). Ignora el código de país/9 si vienen incluidos.
+ *
+ * El "56" y el "9" solo se quitan cuando hay MÁS de 8 dígitos (o sea, cuando
+ * realmente vienen pegados como prefijo, ej. un copy/paste del número
+ * completo). Con 8 dígitos o menos son parte del número que el usuario está
+ * tipeando: sin esta condición, un celular legítimo como +56 9 9843 7654 (o
+ * uno que empiece con 56) era imposible de ingresar, porque sus primeros
+ * dígitos se descartaban como si fueran el prefijo.
  */
 export function extractPhoneDigits(input: string): string {
   let digits = input.replace(/\D/g, "");
-  if (digits.startsWith("56")) digits = digits.slice(2);
-  if (digits.startsWith("9")) digits = digits.slice(1);
+  if (digits.length > 8 && digits.startsWith("56")) digits = digits.slice(2);
+  if (digits.length > 8 && digits.startsWith("9")) digits = digits.slice(1);
   return digits.slice(0, 8);
 }
 

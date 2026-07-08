@@ -93,11 +93,13 @@ export default function TabsLayout() {
 function createStyles(theme: VitaCareThemeType) {
   return StyleSheet.create({
     tabBar: {
-      height: 82,
+      height: 68,
+      marginHorizontal: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+      borderRadius: theme.radius.xl,
       borderTopWidth: 0,
       backgroundColor: theme.colors.surface,
       paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
       ...theme.shadow.card,
     },

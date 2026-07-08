@@ -8,6 +8,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { AppInput } from "@/components/AppInput";
 import { BrandHeader } from "@/components/BrandHeader";
+import { IconImage } from "@/components/IconImage";
 import { PasswordVisibilityToggle } from "@/components/PasswordVisibilityToggle";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { auth } from "@/config/firebase";
@@ -122,16 +123,24 @@ export default function LoginScreen() {
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>o</Text>
+          <Text style={styles.dividerText}>o continúa con</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        <AppButton
-          title={googleLoading ? "Ingresando..." : "Continuar con Google"}
-          variant="outline"
+        <Pressable
           onPress={handleGoogleSignIn}
           disabled={googleLoading}
-        />
+          style={({ pressed }) => [
+            styles.googleButton,
+            pressed && styles.googleButtonPressed,
+            googleLoading && styles.googleButtonDisabled,
+          ]}
+        >
+          <IconImage name="google" size={20} />
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? "Ingresando..." : "Google"}
+          </Text>
+        </Pressable>
 
         <Pressable onPress={() => router.push("/forgot-password")}>
           <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
@@ -140,7 +149,7 @@ export default function LoginScreen() {
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>¿No tienes cuenta? </Text>
           <Pressable onPress={() => router.push("/register")}>
-            <Text style={styles.footerLink}>Registrarse</Text>
+            <Text style={styles.footerLink}>Regístrate</Text>
           </Pressable>
         </View>
       </View>
@@ -179,6 +188,30 @@ function createStyles(theme: VitaCareThemeType) {
     color: theme.colors.textMuted,
     fontSize: theme.typography.small,
     fontFamily: theme.typography.fontFamily,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: 999,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card,
+  },
+  googleButtonPressed: {
+    opacity: 0.85,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleButtonText: {
+    color: theme.colors.text,
+    fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
+    fontWeight: "600",
   },
   link: {
     textAlign: "right",

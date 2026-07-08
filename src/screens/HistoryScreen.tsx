@@ -69,8 +69,13 @@ function formatTime(fechaHora: string): string {
   return new Date(fechaHora).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Convierte un Date a "AAAA-MM-DD" (ISO) usando la fecha local, sin corrimiento por timezone. */
 function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  // No usar toISOString(): convierte a UTC, y en Chile (UTC-3/-4) una fecha
+  // elegida en la tarde/noche se corría al día siguiente en el filtro.
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function buildHistoryUrl(

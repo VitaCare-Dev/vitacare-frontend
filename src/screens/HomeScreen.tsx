@@ -18,7 +18,7 @@ import { IconImage, IconName } from "@/components/IconImage";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiGet } from "@/services/apiClient";
+import { ApiError, apiGet, nullOn404 } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
@@ -87,18 +87,6 @@ function formatFrequency(frequencyHours: number): string {
   return `Cada ${frequencyHours} horas`;
 }
 
-/** Para los "latest" de mediciones, un 404 significa "todavía no hay dato", no un error real. */
-async function getLatestOrNull<T>(path: string): Promise<T | null> {
-  try {
-    return await apiGet<T>(path);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-}
-
 /** Imita la forma real de Home (saludo, resumen, tratamiento, alerta) mientras cargan los datos. */
 function HomeSkeleton() {
   const theme = useTheme();
@@ -153,21 +141,22 @@ export default function HomeScreen() {
     enabled,
   });
 
+  // Para los "latest" de mediciones, un 404 significa "todavía no hay dato", no un error real.
   const glucoseQuery = useQuery({
     queryKey: queryKeys.latestGlucose,
-    queryFn: () => getLatestOrNull<GlucoseRecord>("/api/measurements/glucose/latest"),
+    queryFn: () => nullOn404(apiGet<GlucoseRecord>("/api/measurements/glucose/latest")),
     enabled,
   });
 
   const vitalsQuery = useQuery({
     queryKey: queryKeys.latestVitals,
-    queryFn: () => getLatestOrNull<VitalsRecord>("/api/measurements/vitals/latest"),
+    queryFn: () => nullOn404(apiGet<VitalsRecord>("/api/measurements/vitals/latest")),
     enabled,
   });
 
   const lipidsQuery = useQuery({
     queryKey: queryKeys.latestLipids,
-    queryFn: () => getLatestOrNull<LipidsRecord>("/api/measurements/lipids/latest"),
+    queryFn: () => nullOn404(apiGet<LipidsRecord>("/api/measurements/lipids/latest")),
     enabled,
   });
 

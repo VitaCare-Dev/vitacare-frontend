@@ -9,11 +9,12 @@ import { auth } from "@/config/firebase";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
+import { InlineErrorNotice } from "@/components/InlineErrorNotice";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSkeleton } from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { apiGet } from "@/services/apiClient";
+import { apiGet, nullOn404 } from "@/services/apiClient";
 import { areNotificationsEnabled, notificationsAvailable, setNotificationsEnabled } from "@/services/notifications";
 import { pickProfilePhoto, takeProfilePhoto, uploadProfilePhoto } from "@/services/profilePhoto";
 import { queryKeys } from "@/services/queryKeys";
@@ -75,14 +76,17 @@ export default function ProfileScreen() {
     queryFn: () => apiGet<PatientRecord>("/api/patients/me"),
     enabled,
   });
+  // Solo el 404 ("aún no hay dato") se trata como lista vacía. Un error de
+  // red/5xx queda como isError y su sección muestra "no se pudo cargar" con
+  // reintento, en vez de afirmar falsamente "sin dirección/enfermedades".
   const addressesQuery = useQuery({
     queryKey: queryKeys.patientAddresses,
-    queryFn: () => apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
+    queryFn: () => nullOn404(apiGet<AddressRecord[]>("/api/patients/me/addresses")),
     enabled,
   });
   const diseasesQuery = useQuery({
     queryKey: queryKeys.patientDiseases,
-    queryFn: () => apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
+    queryFn: () => nullOn404(apiGet<DiseaseRecord[]>("/api/patients/me/diseases")),
     enabled,
   });
   const notificationsEnabledQuery = useQuery({
@@ -204,17 +208,31 @@ export default function ProfileScreen() {
           label="Teléfono secundario"
           value={patient?.telefonoSecundario ?? "Sin registrar"}
         />
-        <DetailRow
-          label="Dirección"
-          value={
-            address
-              ? `${address.calle} ${address.numero}, ${address.comuna}, ${address.region}`
-              : "Sin dirección registrada"
-          }
-        />
+        {addressesQuery.isError ? (
+          <InlineErrorNotice
+            message="No pudimos cargar tu dirección."
+            onRetry={() => addressesQuery.refetch()}
+            retrying={addressesQuery.isRefetching}
+          />
+        ) : (
+          <DetailRow
+            label="Dirección"
+            value={
+              address
+                ? `${address.calle} ${address.numero}, ${address.comuna}, ${address.region}`
+                : "Sin dirección registrada"
+            }
+          />
+        )}
         <View style={styles.diseaseBlock}>
           <Text style={styles.blockTitle}>Enfermedades asociadas</Text>
-          {diseases.length > 0 ? (
+          {diseasesQuery.isError ? (
+            <InlineErrorNotice
+              message="No pudimos cargar tus enfermedades."
+              onRetry={() => diseasesQuery.refetch()}
+              retrying={diseasesQuery.isRefetching}
+            />
+          ) : diseases.length > 0 ? (
             diseases.map((item) => (
               <Text key={item.idEnfermedad} style={styles.diseaseItem}>
                 • {item.nombreEnfermedad}

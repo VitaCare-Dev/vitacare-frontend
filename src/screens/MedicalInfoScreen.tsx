@@ -6,13 +6,14 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/AppButton";
 import { IconImage } from "@/components/IconImage";
+import { InlineErrorNotice } from "@/components/InlineErrorNotice";
 import { ReauthPasswordModal } from "@/components/ReauthPasswordModal";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSkeleton } from "@/components/Skeleton";
 import { auth } from "@/config/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
+import { apiDelete, apiGet, nullOn404 } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
@@ -72,27 +73,27 @@ export default function MedicalInfoScreen() {
     queryFn: () => apiGet<PatientRecord>("/api/patients/me"),
     enabled,
   });
+  // Solo el 404 ("aún no hay dato") se trata como vacío. Un error de red/5xx
+  // queda como isError y su sección muestra "no se pudo cargar" con
+  // reintento, en vez de afirmar falsamente que no hay datos registrados.
   const addressesQuery = useQuery({
     queryKey: queryKeys.patientAddresses,
-    queryFn: () => apiGet<AddressRecord[]>("/api/patients/me/addresses").catch(() => []),
+    queryFn: () => nullOn404(apiGet<AddressRecord[]>("/api/patients/me/addresses")),
     enabled,
   });
   const diseasesQuery = useQuery({
     queryKey: queryKeys.patientDiseases,
-    queryFn: () => apiGet<DiseaseRecord[]>("/api/patients/me/diseases").catch(() => []),
+    queryFn: () => nullOn404(apiGet<DiseaseRecord[]>("/api/patients/me/diseases")),
     enabled,
   });
   const thresholdsQuery = useQuery({
     queryKey: queryKeys.patientThresholds,
-    queryFn: () =>
-      apiGet<ThresholdRecord>("/api/patients/me/thresholds").catch((error) =>
-        error instanceof ApiError && error.status === 404 ? null : Promise.reject(error)
-      ),
+    queryFn: () => nullOn404(apiGet<ThresholdRecord>("/api/patients/me/thresholds")),
     enabled,
   });
   const medicationsQuery = useQuery({
     queryKey: queryKeys.medicationsAll,
-    queryFn: () => apiGet<MedicationRecord[]>("/api/medications").catch(() => []),
+    queryFn: () => nullOn404(apiGet<MedicationRecord[]>("/api/medications")),
     enabled,
   });
 
@@ -263,12 +264,20 @@ export default function MedicalInfoScreen() {
             <Text style={styles.editButtonText}>{address ? "Editar" : "Agregar"}</Text>
           </Pressable>
         </View>
-        <InfoCard>
-          <InfoRow label="Calle" value={address?.calle ?? "Sin dirección registrada"} />
-          <InfoRow label="Número" value={address?.numero ?? "-"} />
-          <InfoRow label="Comuna" value={address?.comuna ?? "-"} />
-          <InfoRow label="Región" value={address?.region ?? "-"} />
-        </InfoCard>
+        {addressesQuery.isError ? (
+          <InlineErrorNotice
+            message="No pudimos cargar tu dirección."
+            onRetry={() => addressesQuery.refetch()}
+            retrying={addressesQuery.isRefetching}
+          />
+        ) : (
+          <InfoCard>
+            <InfoRow label="Calle" value={address?.calle ?? "Sin dirección registrada"} />
+            <InfoRow label="Número" value={address?.numero ?? "-"} />
+            <InfoRow label="Comuna" value={address?.comuna ?? "-"} />
+            <InfoRow label="Región" value={address?.region ?? "-"} />
+          </InfoCard>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -283,43 +292,67 @@ export default function MedicalInfoScreen() {
             <Text style={styles.editButtonText}>Agregar</Text>
           </Pressable>
         </View>
-        <InfoCard>
-          {diseases.length > 0 ? (
-            diseases.map((disease) => (
-              <View key={disease.idEnfermedad} style={styles.diseaseItem}>
-                <Text style={styles.diseaseName}>{disease.nombreEnfermedad}</Text>
-                <Text style={styles.diseaseDescription}>{disease.descripcion}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.diseaseDescription}>Sin enfermedades registradas</Text>
-          )}
-        </InfoCard>
+        {diseasesQuery.isError ? (
+          <InlineErrorNotice
+            message="No pudimos cargar tus enfermedades."
+            onRetry={() => diseasesQuery.refetch()}
+            retrying={diseasesQuery.isRefetching}
+          />
+        ) : (
+          <InfoCard>
+            {diseases.length > 0 ? (
+              diseases.map((disease) => (
+                <View key={disease.idEnfermedad} style={styles.diseaseItem}>
+                  <Text style={styles.diseaseName}>{disease.nombreEnfermedad}</Text>
+                  <Text style={styles.diseaseDescription}>{disease.descripcion}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.diseaseDescription}>Sin enfermedades registradas</Text>
+            )}
+          </InfoCard>
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Umbrales médicos</Text>
-        <InfoCard>
-          {thresholds ? (
-            <>
-              <InfoRow label="Glucosa mínima" value={`${thresholds.glucosaMin} mg/dL`} />
-              <InfoRow label="Glucosa máxima" value={`${thresholds.glucosaMax} mg/dL`} />
-              <InfoRow label="Sistólica máxima" value={`${thresholds.sistolicaMax} mmHg`} />
-              <InfoRow label="Diastólica máxima" value={`${thresholds.diastolicaMax} mmHg`} />
-              <InfoRow label="Temperatura máxima" value={`${thresholds.temperaturaMax} °C`} />
-            </>
-          ) : (
-            <Text style={styles.diseaseDescription}>Aún no tienes umbrales calculados</Text>
-          )}
-        </InfoCard>
+        {thresholdsQuery.isError ? (
+          <InlineErrorNotice
+            message="No pudimos cargar tus umbrales médicos."
+            onRetry={() => thresholdsQuery.refetch()}
+            retrying={thresholdsQuery.isRefetching}
+          />
+        ) : (
+          <InfoCard>
+            {thresholds ? (
+              <>
+                <InfoRow label="Glucosa mínima" value={`${thresholds.glucosaMin} mg/dL`} />
+                <InfoRow label="Glucosa máxima" value={`${thresholds.glucosaMax} mg/dL`} />
+                <InfoRow label="Sistólica máxima" value={`${thresholds.sistolicaMax} mmHg`} />
+                <InfoRow label="Diastólica máxima" value={`${thresholds.diastolicaMax} mmHg`} />
+                <InfoRow label="Temperatura máxima" value={`${thresholds.temperaturaMax} °C`} />
+              </>
+            ) : (
+              <Text style={styles.diseaseDescription}>Aún no tienes umbrales calculados</Text>
+            )}
+          </InfoCard>
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tratamiento actual</Text>
-        <InfoCard>
-          <InfoRow label="Medicamentos activos" value={String(activeMedications.length)} />
-          <InfoRow label="Total registrados" value={String(medications.length)} />
-        </InfoCard>
+        {medicationsQuery.isError ? (
+          <InlineErrorNotice
+            message="No pudimos cargar tu tratamiento."
+            onRetry={() => medicationsQuery.refetch()}
+            retrying={medicationsQuery.isRefetching}
+          />
+        ) : (
+          <InfoCard>
+            <InfoRow label="Medicamentos activos" value={String(activeMedications.length)} />
+            <InfoRow label="Total registrados" value={String(medications.length)} />
+          </InfoCard>
+        )}
       </View>
 
       <AppButton

@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react-native";
 import { Text } from "react-native";
 
+import { queryClient } from "@/config/queryClient";
 import { AuthProvider, refreshAuthProfile, useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/services/apiClient";
 
@@ -56,6 +57,22 @@ describe("AuthContext", () => {
     );
     act(() => authStateCallback?.(null));
     await waitFor(() => expect(screen.getByText("unauthenticated")).toBeTruthy());
+  });
+
+  it("clears the React Query cache when the session ends (privacy: next user on the same device)", async () => {
+    // Simula datos médicos cacheados de la sesión que está terminando.
+    queryClient.setQueryData(["patient", "me"], { nombre: "María" });
+    expect(queryClient.getQueryData(["patient", "me"])).toBeTruthy();
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+    act(() => authStateCallback?.(null));
+    await waitFor(() => expect(screen.getByText("unauthenticated")).toBeTruthy());
+
+    expect(queryClient.getQueryData(["patient", "me"])).toBeUndefined();
   });
 
   it("becomes authenticated with hasProfile/hasDisease true once both checks succeed", async () => {

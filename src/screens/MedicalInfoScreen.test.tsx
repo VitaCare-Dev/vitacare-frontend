@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { Alert, RefreshControl } from "react-native";
 
-import { apiDelete, apiGet } from "@/services/apiClient";
+import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
 import MedicalInfoScreen from "@/screens/MedicalInfoScreen";
 import { renderWithProviders } from "@/test-utils/renderWithProviders";
 
@@ -112,6 +112,36 @@ describe("MedicalInfoScreen", () => {
     );
     expect(screen.getByText("Sin enfermedades registradas")).toBeTruthy();
     expect(screen.getByText("Aún no tienes umbrales calculados")).toBeTruthy();
+  });
+
+  it("shows honest inline errors per section (not 'sin datos') when the requests fail with a non-404", async () => {
+    // Un 500/red caída NO debe mostrarse como "Sin dirección registrada" /
+    // "Sin enfermedades registradas": eso afirma un dato que no se pudo verificar.
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.resolve(patient);
+      return Promise.reject(new ApiError(500, "backend caído"));
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+
+    await waitFor(() => expect(screen.getByText("No pudimos cargar tu dirección.")).toBeTruthy());
+    expect(screen.getByText("No pudimos cargar tus enfermedades.")).toBeTruthy();
+    expect(screen.getByText("No pudimos cargar tus umbrales médicos.")).toBeTruthy();
+    expect(screen.getByText("No pudimos cargar tu tratamiento.")).toBeTruthy();
+    expect(screen.queryByText("Sin dirección registrada")).toBeNull();
+    expect(screen.queryByText("Sin enfermedades registradas")).toBeNull();
+    expect(screen.queryByText("Aún no tienes umbrales calculados")).toBeNull();
+  });
+
+  it("treats a 404 as confirmed 'no data', not as a load error", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.resolve(patient);
+      return Promise.reject(new ApiError(404, "not found"));
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+
+    await waitFor(() => expect(screen.getByText("Sin dirección registrada")).toBeTruthy());
+    expect(screen.getByText("Aún no tienes umbrales calculados")).toBeTruthy();
+    expect(screen.queryByText("No pudimos cargar tu dirección.")).toBeNull();
   });
 
   it("navigates to edit-profile, edit-address, add-disease, and change-password", async () => {

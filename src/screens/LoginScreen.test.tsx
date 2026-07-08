@@ -105,7 +105,7 @@ describe("LoginScreen", () => {
 
   it("navigates to /register", () => {
     renderWithProviders(<LoginScreen />);
-    fireEvent.press(screen.getByText("Registrarse"));
+    fireEvent.press(screen.getByText("Regístrate"));
     expect(mockPush).toHaveBeenCalledWith("/register");
   });
 
@@ -113,7 +113,7 @@ describe("LoginScreen", () => {
     mockSignInWithGoogle.mockResolvedValue(true);
     renderWithProviders(<LoginScreen />);
 
-    fireEvent.press(screen.getByText("Continuar con Google"));
+    fireEvent.press(screen.getByText("Google"));
 
     await waitFor(() => expect(mockSignInWithGoogle).toHaveBeenCalled());
   });
@@ -122,7 +122,7 @@ describe("LoginScreen", () => {
     mockSignInWithGoogle.mockRejectedValue(new Error("boom"));
     renderWithProviders(<LoginScreen />);
 
-    fireEvent.press(screen.getByText("Continuar con Google"));
+    fireEvent.press(screen.getByText("Google"));
 
     await waitFor(() =>
       expect(Alert.alert).toHaveBeenCalledWith("Error", "No se pudo iniciar sesión con Google.")

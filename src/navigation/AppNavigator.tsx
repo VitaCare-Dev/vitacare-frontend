@@ -1,8 +1,6 @@
 import { Stack, useRouter, useSegments } from "expo-router";
-import { signOut } from "firebase/auth";
 import { useEffect } from "react";
 
-import { auth } from "@/config/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -31,23 +29,18 @@ export function AppNavigator() {
       router.replace("/(auth)/login");
     } else if (authState.status === "authenticated") {
       if (!authState.hasProfile && !onRegisterScreen) {
-        // Con email/contraseña, un usuario autenticado sin paciente
-        // registrado solo ocurre mientras el flujo de registro está en curso
-        // (onRegisterScreen ya lo cubre). Pero con Google, Firebase crea la
-        // cuenta al vuelo la primera vez que alguien inicia sesión — ahí
-        // "autenticado sin perfil" es legítimo y esperado, no una anomalía.
-        // Se distingue por creationTime === lastSignInTime (solo son iguales
-        // en el primer inicio de sesión de esa cuenta): si es la primera vez,
-        // se manda a completar el registro; si no, es una cuenta que ya se
-        // usó antes sin terminar de registrarse (huérfana real) y se cierra
-        // la sesión, igual que antes.
-        const { creationTime, lastSignInTime } = authState.user.metadata;
-        if (creationTime === lastSignInTime) {
-          router.replace("/register");
-        } else {
-          signOut(auth);
-          router.replace("/(auth)/login");
-        }
+        // Autenticado sin paciente registrado: pasa con Google (Firebase crea
+        // la cuenta al vuelo en el primer inicio de sesión) o si el usuario
+        // cerró la app a mitad del registro y volvió a entrar después. En
+        // ambos casos el camino es el mismo: completar el registro —
+        // RegisterScreen ya maneja el caso "usuario ya autenticado" (salta el
+        // paso de credenciales y parte en el paso 2). Antes acá se cerraba la
+        // sesión de las cuentas que no estaban en su primer inicio de sesión
+        // (heurística creationTime === lastSignInTime), pero eso las dejaba
+        // bloqueadas para siempre: cada nuevo intento ya no era "primer
+        // inicio" y volvía a cerrar la sesión, sin ninguna vía posible para
+        // terminar de registrarse.
+        router.replace("/register");
       } else if (authState.hasProfile && !authState.hasDisease && !onSelectDiseaseScreen) {
         router.replace("/select-disease");
       } else if (authState.hasProfile && authState.hasDisease && inAuthGroup) {

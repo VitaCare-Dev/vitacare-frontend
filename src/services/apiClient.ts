@@ -82,7 +82,19 @@ async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Pro
   }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
+  let data: unknown;
+  try {
+    data = text ? JSON.parse(text) : undefined;
+  } catch {
+    // Cuerpo no-JSON (ej. HTML de un proxy/gateway caído): se lanza un
+    // ApiError con el status real en vez de dejar escapar un SyntaxError
+    // crudo, para que la lógica que distingue por status (ej. los checks
+    // de 404 en AuthContext) siga funcionando.
+    throw new ApiError(
+      response.status,
+      `Respuesta inesperada del servidor (${response.status}) al llamar ${path}.`
+    );
+  }
 
   if (!response.ok) {
     const errorBody = data as ErrorResponseDto | undefined;
@@ -94,6 +106,25 @@ async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Pro
   }
 
   return data as T;
+}
+
+/**
+ * Mapea SOLO el 404 a `null` ("el backend confirmó que este dato no existe")
+ * y deja pasar cualquier otro error (red, 5xx) para que la pantalla lo
+ * muestre como "no se pudo cargar" con reintento. Nunca usar `.catch(() =>
+ * [])` a secas: eso convierte un backend caído en un "no tienes datos" falso.
+ *
+ * Uso: `nullOn404(apiGet<AddressRecord[]>("/api/patients/me/addresses"))`
+ */
+export async function nullOn404<T>(request: Promise<T>): Promise<T | null> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export function apiGet<T>(path: string): Promise<T> {

@@ -5,7 +5,7 @@ import { Alert } from "react-native";
 
 import { auth } from "@/config/firebase";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
-import { apiPost } from "@/services/apiClient";
+import { ApiError, apiPost } from "@/services/apiClient";
 import RegisterScreen from "@/screens/RegisterScreen";
 import { renderWithProviders } from "@/test-utils/renderWithProviders";
 
@@ -178,6 +178,44 @@ describe("RegisterScreen", () => {
         "Error al registrarse",
         "Ya existe una cuenta con ese correo."
       )
+    );
+  });
+
+  it("continues straight to the address when the patient already exists (409 from a previous attempt)", async () => {
+    // Simula el re-submit tras cancelar un reintento de dirección: el
+    // paciente ya quedó creado, así que /api/auth/register responde 409.
+    // No debe mostrarse un error — se salta directo a registrar la dirección.
+    mockCreateUser.mockResolvedValue({ user: { uid: "u1" } });
+    mockUpdateProfile.mockResolvedValue(undefined);
+    mockApiPost.mockImplementation((path: string) => {
+      if (path === "/api/auth/register") {
+        return Promise.reject(new ApiError(409, "Paciente ya registrado"));
+      }
+      return Promise.resolve({});
+    });
+    renderWithProviders(<RegisterScreen />);
+
+    await fillCredentialsStep();
+    await fillPersonalStep();
+    await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+    await fillAddressStep();
+    fireEvent.press(screen.getAllByText("Registrarse").slice(-1)[0]);
+
+    await waitFor(() =>
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/api/patients/me/addresses",
+        expect.objectContaining({ calle: "Av. Providencia", numero: "456" })
+      )
+    );
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "¡Cuenta creada!",
+      "Ahora selecciona la enfermedad que quieres seguir.",
+      expect.anything()
+    );
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      "Error al completar el registro",
+      expect.anything(),
+      expect.anything()
     );
   });
 

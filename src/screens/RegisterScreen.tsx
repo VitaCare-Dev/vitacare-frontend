@@ -19,7 +19,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { auth } from "@/config/firebase";
 import { refreshAuthProfile } from "@/context/AuthContext";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
-import { apiPost } from "@/services/apiClient";
+import { ApiError, apiPost } from "@/services/apiClient";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import {
@@ -133,7 +133,16 @@ export default function RegisterScreen() {
       console.error("Error al registrar dirección:", error);
       setLoading(false);
       Alert.alert("Error al registrar tu dirección", "No se pudo registrar tu dirección.", [
-        { text: "Reintentar", onPress: () => registerAddress(address) },
+        {
+          text: "Reintentar",
+          // Se re-activa loading: sin esto, durante el reintento el botón
+          // "Registrarse" quedaba habilitado y permitía un segundo submit
+          // en paralelo.
+          onPress: () => {
+            setLoading(true);
+            registerAddress(address);
+          },
+        },
         { text: "Cancelar", style: "cancel" },
       ]);
     }
@@ -154,6 +163,16 @@ export default function RegisterScreen() {
       // (que no es idempotente y respondería 409 con el mismo RUT).
       await registerAddress(address);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        // El paciente ya se creó en un intento anterior (ej. el usuario
+        // canceló el reintento de la dirección y volvió a presionar
+        // "Registrarse"): no es un error real — se continúa directo con la
+        // dirección, que es lo único que quedó pendiente. Sin esto, el 409
+        // caía al alert genérico y su "Reintentar" volvía al mismo 409 en
+        // un loop sin salida.
+        await registerAddress(address);
+        return;
+      }
       // El detalle técnico (404/500/etc.) solo queda en consola: al usuario
       // se le muestra un mensaje genérico, nunca el error crudo del backend.
       console.error("Error al completar registro de paciente:", error);
@@ -162,7 +181,16 @@ export default function RegisterScreen() {
         "Error al completar el registro",
         "No se pudo completar tu registro de paciente. Intenta de nuevo.",
         [
-          { text: "Reintentar", onPress: () => registerPatientProfile(personal, address) },
+          {
+            text: "Reintentar",
+            // Se re-activa loading: sin esto, durante el reintento el botón
+            // "Registrarse" quedaba habilitado y permitía un segundo submit
+            // en paralelo.
+            onPress: () => {
+              setLoading(true);
+              registerPatientProfile(personal, address);
+            },
+          },
           { text: "Cancelar", style: "cancel" },
         ],
       );
