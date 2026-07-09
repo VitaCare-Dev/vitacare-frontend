@@ -20,7 +20,7 @@ import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import { editProfileSchema, type EditProfileFormValues } from "@/utils/formSchemas";
-import { formatChileanPhone } from "@/utils/phoneFormat";
+import { extractPhoneDigits, formatChileanPhone } from "@/utils/phoneFormat";
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -88,8 +88,12 @@ export default function EditProfileScreen() {
       nombre: patient.nombre,
       apellidoPaterno: patient.apellidoPaterno,
       apellidoMaterno: patient.apellidoMaterno ?? "",
-      telefonoPrincipal: formatChileanPhone(patient.telefonoPrincipal),
-      telefonoSecundario: formatChileanPhone(patient.telefonoSecundario ?? ""),
+      // patient.telefonoPrincipal/Secundario vienen del backend con el
+      // prefijo real "+56 9" incluido (así se guardó en el registro): hay que
+      // extraerlo primero. formatChileanPhone ya no lo hace por su cuenta —
+      // recibe los dígitos ya limpios, tal como llegan desde PhoneInput.
+      telefonoPrincipal: formatChileanPhone(extractPhoneDigits(patient.telefonoPrincipal)),
+      telefonoSecundario: formatChileanPhone(extractPhoneDigits(patient.telefonoSecundario ?? "")),
       birthDate: new Date(patient.fechaNacimiento),
     });
   }, [patient, reset]);

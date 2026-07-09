@@ -18,23 +18,6 @@ describe("extractPhoneDigits", () => {
     expect(extractPhoneDigits("569876543219999")).toBe("87654321");
   });
 
-  it("keeps a leading 9 when it's part of the 8 subscriber digits (not a prefix)", () => {
-    // Celulares como +56 9 9843 7654 existen: el primer "9" tipeado no debe
-    // descartarse como si fuera el prefijo del formato.
-    expect(extractPhoneDigits("9")).toBe("9");
-    expect(extractPhoneDigits("98437654")).toBe("98437654");
-  });
-
-  it("keeps a leading 56 when it's part of the 8 subscriber digits (not the country code)", () => {
-    expect(extractPhoneDigits("56")).toBe("56");
-    expect(extractPhoneDigits("56123456")).toBe("56123456");
-  });
-
-  it("still strips prefixes from a pasted full number that starts with 9 or 56", () => {
-    expect(extractPhoneDigits("+56 9 9843 7654")).toBe("98437654");
-    expect(extractPhoneDigits("+56 9 5612 3456")).toBe("56123456");
-  });
-
   it("returns an empty string when there are no digits", () => {
     expect(extractPhoneDigits("")).toBe("");
   });
@@ -53,8 +36,15 @@ describe("formatChileanPhone", () => {
     expect(formatChileanPhone("876")).toBe("+56 9 876");
   });
 
-  it("is idempotent when re-formatting an already formatted value", () => {
-    expect(formatChileanPhone("+56 9 8765 4321")).toBe("+56 9 8765 4321");
+  it("does not strip a leading 9 or 56 — those are raw typed digits, never a prefix", () => {
+    // formatChileanPhone recibe los dígitos ya limpios que el usuario tipea
+    // en vivo (el "+56 9" es un texto fijo aparte, nunca parte de lo
+    // editable). Un abonado que empieza con 9 o 56 es legítimo y no debe
+    // perder esos dígitos.
+    expect(formatChileanPhone("98437654")).toBe("+56 9 9843 7654");
+    expect(formatChileanPhone("56933245")).toBe("+56 9 5693 3245");
+    expect(formatChileanPhone("9")).toBe("+56 9 9");
+    expect(formatChileanPhone("56")).toBe("+56 9 56");
   });
 });
 

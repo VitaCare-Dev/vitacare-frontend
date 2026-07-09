@@ -1,10 +1,17 @@
 /**
- * Formatea un teléfono chileno como "+56 9 XXXX XXXX" a partir de los 8
- * dígitos del celular (sin el 9). Devuelve "" si no hay ningún dígito, para
- * no forzar el prefijo en campos opcionales vacíos.
+ * Formatea un teléfono chileno como "+56 9 XXXX XXXX" a partir de los dígitos
+ * YA LIMPIOS del abonado (sin prefijo) — típicamente lo que el usuario está
+ * tipeando en vivo en PhoneInput, donde el "+56 9" es un texto fijo aparte y
+ * nunca forma parte de lo editable. Si el valor puede traer el prefijo (ej.
+ * viene del backend), extráelo primero con `extractPhoneDigits`.
+ *
+ * NO intenta quitar un "56"/"9" inicial: hacerlo aquí rompía números cuyo
+ * abonado empieza legítimamente con esos dígitos (ej. 5693 3245), porque el
+ * primer "5" y "6" tipeados se interpretaban como si fueran el prefijo de
+ * país y se borraban solos mientras el usuario escribía.
  */
 export function formatChileanPhone(rawDigits: string): string {
-  const digits = extractPhoneDigits(rawDigits);
+  const digits = rawDigits.replace(/\D/g, "").slice(0, 8);
   if (digits.length === 0) return "";
 
   const part1 = digits.slice(0, 4);
@@ -18,21 +25,20 @@ export function formatChileanPhone(rawDigits: string): string {
 }
 
 /**
- * Extrae solo los 8 dígitos editables del celular a partir de cualquier
- * texto (un valor completo "+56 9 XXXX XXXX", o dígitos sueltos que el
- * usuario esté tipeando). Ignora el código de país/9 si vienen incluidos.
+ * Extrae los 8 dígitos del abonado a partir de un valor COMPLETO que puede
+ * incluir el prefijo real "+56 9" (ej. lo que devuelve el backend, o el valor
+ * ya formateado que guarda el formulario). Quita el código de país/9 una vez,
+ * al inicio.
  *
- * El "56" y el "9" solo se quitan cuando hay MÁS de 8 dígitos (o sea, cuando
- * realmente vienen pegados como prefijo, ej. un copy/paste del número
- * completo). Con 8 dígitos o menos son parte del número que el usuario está
- * tipeando: sin esta condición, un celular legítimo como +56 9 9843 7654 (o
- * uno que empiece con 56) era imposible de ingresar, porque sus primeros
- * dígitos se descartaban como si fueran el prefijo.
+ * No usar esto para sanear lo que el usuario tipea en vivo dentro del input
+ * (ver `formatChileanPhone`) — ese texto nunca trae el prefijo, y aplicarle
+ * esta misma lógica de todos modos hacía desaparecer números que empiezan
+ * con 56/9 apenas se tipeaban esos primeros dígitos.
  */
 export function extractPhoneDigits(input: string): string {
   let digits = input.replace(/\D/g, "");
-  if (digits.length > 8 && digits.startsWith("56")) digits = digits.slice(2);
-  if (digits.length > 8 && digits.startsWith("9")) digits = digits.slice(1);
+  if (digits.startsWith("56")) digits = digits.slice(2);
+  if (digits.startsWith("9")) digits = digits.slice(1);
   return digits.slice(0, 8);
 }
 

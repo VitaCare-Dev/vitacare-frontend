@@ -126,11 +126,7 @@ describe("RegisterScreen", () => {
         expect.objectContaining({ calle: "Av. Providencia", numero: "456" })
       )
     );
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "¡Cuenta creada!",
-      "Ahora selecciona la enfermedad que quieres seguir.",
-      expect.anything()
-    );
+    expect(Alert.alert).toHaveBeenCalledWith("Registro exitoso", undefined, expect.anything());
     await waitFor(() => expect(mockRefreshAuthProfile).toHaveBeenCalled());
 
     // Tras el éxito, la pantalla se mantiene en estado de carga (no vuelve a
@@ -207,11 +203,7 @@ describe("RegisterScreen", () => {
         expect.objectContaining({ calle: "Av. Providencia", numero: "456" })
       )
     );
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "¡Cuenta creada!",
-      "Ahora selecciona la enfermedad que quieres seguir.",
-      expect.anything()
-    );
+    expect(Alert.alert).toHaveBeenCalledWith("Registro exitoso", undefined, expect.anything());
     expect(Alert.alert).not.toHaveBeenCalledWith(
       "Error al completar el registro",
       expect.anything(),

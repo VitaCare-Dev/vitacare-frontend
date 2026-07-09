@@ -124,7 +124,7 @@ export default function RegisterScreen() {
       // lo que dispara la navegación automática a select-disease (via
       // AppNavigator), así el usuario ve el mensaje de éxito antes de que la
       // pantalla cambie, no encima de la siguiente pantalla.
-      Alert.alert("¡Cuenta creada!", "Ahora selecciona la enfermedad que quieres seguir.", [
+      Alert.alert("Registro exitoso", undefined, [
         { text: "Continuar", onPress: () => refreshAuthProfile() },
       ]);
     } catch (error) {
