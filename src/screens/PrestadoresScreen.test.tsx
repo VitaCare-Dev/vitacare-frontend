@@ -48,6 +48,15 @@ const prestador = {
   fechaActualizacion: "2026-01-01",
 };
 
+const pendingPrestador = {
+  ...prestador,
+  id: "prestador-2",
+  nombre: "Dr. Juan Soto",
+  region: "Valparaíso",
+  comuna: "Viña del Mar",
+  estadoValidacion: "Pendiente" as const,
+};
+
 describe("PrestadoresScreen", () => {
   beforeEach(() => {
     mockPush.mockClear();
@@ -138,5 +147,85 @@ describe("PrestadoresScreen", () => {
     await act(async () => refreshControl.props.onRefresh());
 
     expect(mockGetPrestadores.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
+  });
+
+  it("shows a generic error message when pull-to-refresh fails", async () => {
+    renderWithProviders(<PrestadoresScreen />);
+    await waitFor(() => expect(screen.getByText("Dra. Camila Rojas")).toBeTruthy());
+
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    mockGetPrestadores.mockRejectedValue(new Error("network down"));
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    await act(async () => refreshControl.props.onRefresh());
+
+    await waitFor(() =>
+      expect(screen.getByText("No fue posible cargar los prestadores.")).toBeTruthy()
+    );
+    (console.error as jest.Mock).mockRestore();
+  });
+
+  it("shows a generic error message when applying filters fails", async () => {
+    renderWithProviders(<PrestadoresScreen />);
+    await waitFor(() => expect(screen.getByText("Dra. Camila Rojas")).toBeTruthy());
+
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    mockSearchPrestadores.mockRejectedValue(new Error("network down"));
+    fireEvent.changeText(
+      screen.getByPlaceholderText("Buscar por nombre o especialidad"),
+      "Camila"
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("No fue posible aplicar los filtros.")).toBeTruthy()
+    );
+    (console.error as jest.Mock).mockRestore();
+  });
+
+  it("shows the 'Pendiente' badge for a provider awaiting validation", async () => {
+    mockGetPrestadores.mockResolvedValue([pendingPrestador]);
+    mockSearchPrestadores.mockResolvedValue([pendingPrestador]);
+    renderWithProviders(<PrestadoresScreen />);
+
+    await waitFor(() => expect(screen.getByText("Dr. Juan Soto")).toBeTruthy());
+    expect(screen.getByText("Pendiente")).toBeTruthy();
+  });
+
+  it("narrows comuna options to the selected region and resets the comuna filter", async () => {
+    mockGetPrestadores.mockResolvedValue([prestador, pendingPrestador]);
+    mockGetRegiones.mockResolvedValue(["Metropolitana", "Valparaíso"]);
+    mockGetComunas.mockResolvedValue(["Providencia", "Viña del Mar"]);
+    mockSearchPrestadores.mockResolvedValue([prestador, pendingPrestador]);
+    renderWithProviders(<PrestadoresScreen />);
+    await waitFor(() => expect(screen.getByText("Dra. Camila Rojas")).toBeTruthy());
+
+    fireEvent.press(screen.getAllByText("Metropolitana")[0]);
+
+    await waitFor(() =>
+      expect(mockSearchPrestadores).toHaveBeenCalledWith(
+        expect.objectContaining({ region: "Metropolitana", comuna: "" })
+      )
+    );
+    // Solo debería quedar la comuna de los prestadores de esa región.
+    expect(screen.queryByText("Viña del Mar")).toBeNull();
+  });
+
+  it("resets a filter chip to 'Todas' when the empty option is pressed", async () => {
+    renderWithProviders(<PrestadoresScreen />);
+    await waitFor(() => expect(screen.getByText("Dra. Camila Rojas")).toBeTruthy());
+
+    fireEvent.press(screen.getAllByText("Cardiología")[0]);
+    await waitFor(() =>
+      expect(mockSearchPrestadores).toHaveBeenLastCalledWith(
+        expect.objectContaining({ especialidad: "Cardiología" })
+      )
+    );
+
+    fireEvent.press(screen.getAllByText("Todas")[0]);
+
+    await waitFor(() =>
+      expect(mockSearchPrestadores).toHaveBeenLastCalledWith(
+        expect.objectContaining({ especialidad: "" })
+      )
+    );
   });
 });

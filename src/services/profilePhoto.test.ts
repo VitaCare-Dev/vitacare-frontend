@@ -1,13 +1,15 @@
 import * as ImagePicker from "expo-image-picker";
 
 import { apiPost, apiPut } from "@/services/apiClient";
-import { pickProfilePhoto, uploadProfilePhoto } from "@/services/profilePhoto";
+import { pickProfilePhoto, takeProfilePhoto, uploadProfilePhoto } from "@/services/profilePhoto";
 
 jest.mock("@/config/firebase");
 
 jest.mock("expo-image-picker", () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
 }));
 
 const mockUpload = jest.fn();
@@ -24,6 +26,8 @@ jest.mock("@/services/apiClient", () => ({
 
 const mockRequestPermissions = ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock;
 const mockLaunchLibrary = ImagePicker.launchImageLibraryAsync as jest.Mock;
+const mockRequestCameraPermissions = ImagePicker.requestCameraPermissionsAsync as jest.Mock;
+const mockLaunchCamera = ImagePicker.launchCameraAsync as jest.Mock;
 const mockApiPost = apiPost as jest.Mock;
 const mockApiPut = apiPut as jest.Mock;
 
@@ -61,6 +65,43 @@ describe("pickProfilePhoto", () => {
     const result = await pickProfilePhoto();
 
     expect(result).toBe("file:///local/photo.jpg");
+  });
+});
+
+describe("takeProfilePhoto", () => {
+  beforeEach(() => {
+    mockRequestCameraPermissions.mockReset();
+    mockLaunchCamera.mockReset();
+  });
+
+  it("returns null when camera permission is denied", async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: false });
+
+    const result = await takeProfilePhoto();
+
+    expect(result).toBeNull();
+    expect(mockLaunchCamera).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the user cancels the camera", async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true });
+    mockLaunchCamera.mockResolvedValue({ canceled: true, assets: [] });
+
+    const result = await takeProfilePhoto();
+
+    expect(result).toBeNull();
+  });
+
+  it("returns the taken photo's URI", async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true });
+    mockLaunchCamera.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "file:///local/camera.jpg" }],
+    });
+
+    const result = await takeProfilePhoto();
+
+    expect(result).toBe("file:///local/camera.jpg");
   });
 });
 

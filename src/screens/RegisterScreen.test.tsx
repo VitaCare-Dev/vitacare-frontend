@@ -235,12 +235,112 @@ describe("RegisterScreen", () => {
     );
   });
 
+  it("retries registering the address when 'Reintentar' is pressed after a failure", async () => {
+    mockCreateUser.mockResolvedValue({ user: { uid: "u1" } });
+    mockUpdateProfile.mockResolvedValue(undefined);
+    let addressAttempts = 0;
+    mockApiPost.mockImplementation((path: string) => {
+      if (path === "/api/patients/me/addresses") {
+        addressAttempts += 1;
+        if (addressAttempts === 1) return Promise.reject(new Error("network down"));
+        return Promise.resolve({});
+      }
+      return Promise.resolve({});
+    });
+    renderWithProviders(<RegisterScreen />);
+
+    await fillCredentialsStep();
+    await fillPersonalStep();
+    await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+    await fillAddressStep();
+    fireEvent.press(screen.getAllByText("Registrarse").slice(-1)[0]);
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+    const [, , buttons] = (Alert.alert as jest.Mock).mock.calls[0];
+    await act(async () => buttons[0].onPress());
+
+    await waitFor(() => expect(addressAttempts).toBe(2));
+    expect(Alert.alert).toHaveBeenCalledWith("Registro exitoso", undefined, expect.anything());
+  });
+
+  it("shows a generic error and offers to retry when patient registration fails for a non-409 reason", async () => {
+    mockCreateUser.mockResolvedValue({ user: { uid: "u1" } });
+    mockUpdateProfile.mockResolvedValue(undefined);
+    let registerAttempts = 0;
+    mockApiPost.mockImplementation((path: string) => {
+      if (path === "/api/auth/register") {
+        registerAttempts += 1;
+        if (registerAttempts === 1) return Promise.reject(new ApiError(500, "backend caído"));
+        return Promise.resolve({});
+      }
+      return Promise.resolve({});
+    });
+    renderWithProviders(<RegisterScreen />);
+
+    await fillCredentialsStep();
+    await fillPersonalStep();
+    await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+    await fillAddressStep();
+    fireEvent.press(screen.getAllByText("Registrarse").slice(-1)[0]);
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "Error al completar el registro",
+        "No se pudo completar tu registro de paciente. Intenta de nuevo.",
+        expect.anything()
+      )
+    );
+
+    // Presionar "Reintentar" del alert de registro de paciente.
+    const call = (Alert.alert as jest.Mock).mock.calls.find(
+      ([title]) => title === "Error al completar el registro"
+    );
+    await act(async () => call[2][0].onPress());
+
+    await waitFor(() => expect(registerAttempts).toBe(2));
+    expect(Alert.alert).toHaveBeenCalledWith("Registro exitoso", undefined, expect.anything());
+  });
+
   it("navigates back from step 2 to step 1 in the signup flow", async () => {
     renderWithProviders(<RegisterScreen />);
     await fillCredentialsStep();
 
     fireEvent.press(screen.getByText("Atrás"));
     await waitFor(() => expect(screen.getByText("Paso 1 de 3 — Tu cuenta.")).toBeTruthy());
+  });
+
+  it("navigates back from step 3 to step 2", async () => {
+    renderWithProviders(<RegisterScreen />);
+    await fillCredentialsStep();
+    await fillPersonalStep();
+    await waitFor(() => expect(screen.getByText("Paso 3 de 3 — Tu dirección.")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Atrás"));
+
+    await waitFor(() => expect(screen.getByText("Paso 2 de 3 — Tus datos personales.")).toBeTruthy());
+  });
+
+  it("dismisses the birth date picker without changing the date when cancelled", async () => {
+    renderWithProviders(<RegisterScreen />);
+    await fillCredentialsStep();
+
+    fireEvent.press(screen.getByText("Fecha de nacimiento"));
+    const datePicker = screen.UNSAFE_getByType(DateTimePicker);
+    await act(async () => datePicker.props.onDismiss());
+
+    expect(screen.UNSAFE_queryByType(DateTimePicker)).toBeNull();
+  });
+
+  it("toggles password visibility for both the password and confirm-password fields", async () => {
+    renderWithProviders(<RegisterScreen />);
+
+    expect(screen.getAllByLabelText("ojo")).toHaveLength(2);
+
+    fireEvent.press(screen.getAllByLabelText("ojo")[0]);
+    expect(screen.getAllByLabelText("cerrar-ojo")).toHaveLength(2);
+
+    fireEvent.press(screen.getAllByLabelText("cerrar-ojo")[1]);
+    expect(screen.getAllByLabelText("ojo")).toHaveLength(2);
   });
 
   describe("when a Firebase user is already authenticated (ej. recién inició sesión con Google)", () => {

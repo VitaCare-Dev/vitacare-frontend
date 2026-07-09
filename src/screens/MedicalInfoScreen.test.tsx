@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { Alert, RefreshControl } from "react-native";
 
+import { auth } from "@/config/firebase";
 import { ApiError, apiDelete, apiGet } from "@/services/apiClient";
 import MedicalInfoScreen from "@/screens/MedicalInfoScreen";
 import { renderWithProviders } from "@/test-utils/renderWithProviders";
@@ -75,6 +76,10 @@ describe("MedicalInfoScreen", () => {
 
   afterEach(() => {
     (Alert.alert as jest.Mock).mockRestore();
+    (auth as { currentUser: unknown }).currentUser = {
+      email: "a@b.cl",
+      getIdToken: () => mockGetIdToken(),
+    };
   });
 
   it(
@@ -220,6 +225,91 @@ describe("MedicalInfoScreen", () => {
     await waitFor(() =>
       expect(screen.getByText("Contraseña incorrecta. Intenta de nuevo.")).toBeTruthy()
     );
+  });
+
+  it("shows a generic error when there is no active session during account deletion", async () => {
+    mockApi();
+    (auth as { currentUser: unknown }).currentUser = null;
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("Eliminar cuenta")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Eliminar cuenta"));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "No se pudo eliminar la cuenta",
+        "Ocurrió un problema inesperado. Intenta de nuevo más tarde."
+      )
+    );
+    expect(mockDeleteUser).not.toHaveBeenCalled();
+  });
+
+  it("cancels the reauth modal without deleting the account", async () => {
+    mockApi();
+    mockDeleteUser.mockRejectedValue({ code: "auth/requires-recent-login" });
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("Eliminar cuenta")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Eliminar cuenta"));
+    await waitFor(() => expect(screen.getByText("Confirma tu contraseña")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(screen.queryByText("Confirma tu contraseña")).toBeNull();
+    expect(mockReauthenticate).not.toHaveBeenCalled();
+  });
+
+  it("shows a generic error and closes the modal when reauthentication fails for an unrelated reason", async () => {
+    mockApi();
+    mockDeleteUser.mockRejectedValue({ code: "auth/requires-recent-login" });
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("Eliminar cuenta")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Eliminar cuenta"));
+    await waitFor(() => expect(screen.getByText("Confirma tu contraseña")).toBeTruthy());
+
+    // Sin email en la sesión al momento de reautenticar: reauthMutation lanza
+    // antes de llamar a reauthenticateWithCredential.
+    (auth as { currentUser: unknown }).currentUser = { email: undefined };
+    fireEvent.changeText(screen.getByPlaceholderText("••••••••"), "mypassword");
+    fireEvent.press(screen.getByText("Confirmar y eliminar cuenta"));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "No se pudo eliminar la cuenta",
+        "Ocurrió un problema inesperado. Intenta de nuevo más tarde."
+      )
+    );
+    expect(mockReauthenticate).not.toHaveBeenCalled();
+    expect(screen.queryByText("Confirma tu contraseña")).toBeNull();
+  });
+
+  it("retries each failing section from its own inline error notice", async () => {
+    mockApiGet.mockImplementation((path: string) => {
+      if (path === "/api/patients/me") return Promise.resolve(patient);
+      return Promise.reject(new ApiError(500, "backend caído"));
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("No pudimos cargar tu dirección.")).toBeTruthy());
+
+    const retryButtons = screen.getAllByText("Reintentar");
+    expect(retryButtons).toHaveLength(4);
+
+    const callsBefore = mockApiGet.mock.calls.length;
+    for (const button of retryButtons) {
+      fireEvent.press(button);
+    }
+
+    await waitFor(() => expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
   it("refetches all sections when the user pulls to refresh", async () => {

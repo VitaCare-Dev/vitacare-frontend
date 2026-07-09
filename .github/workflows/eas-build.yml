@@ -24,8 +24,11 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Run unit tests
-        run: npm test -- --ci
+      - name: Run unit tests with coverage
+        # --coverage hace que Jest aplique coverageThreshold (package.json):
+        # si Statements/Branches/Functions/Lines no llegan al 90%, este paso
+        # falla y el job "build" (que depende de "test") no se ejecuta.
+        run: npm test -- --ci --coverage
 
   build:
     name: Build Android APK (EAS)

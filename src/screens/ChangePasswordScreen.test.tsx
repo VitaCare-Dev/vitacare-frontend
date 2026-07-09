@@ -147,4 +147,20 @@ describe("ChangePasswordScreen", () => {
     fireEvent.changeText(newPass, strongPassword);
     expect(screen.getAllByText("✓")).toHaveLength(5);
   });
+
+  it("toggles visibility for the current, new, and confirm password fields", () => {
+    renderWithProviders(<ChangePasswordScreen />);
+
+    // Los 3 campos comparten el mismo estado showPasswords, pero cada botón
+    // de ojo es una instancia de callback distinta en el código — hay que
+    // presionar los 3 para cubrir cada una.
+    fireEvent.press(screen.getAllByLabelText("ojo")[0]);
+    expect(screen.getAllByLabelText("cerrar-ojo")).toHaveLength(3);
+
+    fireEvent.press(screen.getAllByLabelText("cerrar-ojo")[1]);
+    expect(screen.getAllByLabelText("ojo")).toHaveLength(3);
+
+    fireEvent.press(screen.getAllByLabelText("ojo")[2]);
+    expect(screen.getAllByLabelText("cerrar-ojo")).toHaveLength(3);
+  });
 });

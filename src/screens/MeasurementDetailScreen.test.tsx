@@ -42,6 +42,15 @@ const vitalsRecord = {
   temperatura: 36.6,
   peso: 65,
 };
+const lipidsRecord = {
+  idControl: 1,
+  fechaHora: "2026-06-01T10:00:00",
+  notas: null,
+  colesterolTotal: 210,
+  colesterolLDL: 130,
+  colesterolHDL: 40,
+  trigliceridos: 150,
+};
 
 function mockApi(overrides: Record<string, unknown> = {}) {
   mockApiGet.mockImplementation((path: string) => {
@@ -115,6 +124,36 @@ describe("MeasurementDetailScreen", () => {
 
     await waitFor(() => expect(mockApiDelete).toHaveBeenCalledWith("/api/measurements/glucose/1"));
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("deletes vitals and navigates back when it was the only remaining section", async () => {
+    mockApi({ vitals: [vitalsRecord] });
+    mockApiDelete.mockResolvedValue({});
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MeasurementDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText("Eliminar")).toBeTruthy());
+    fireEvent.press(screen.getByText("Eliminar"));
+
+    await waitFor(() => expect(mockApiDelete).toHaveBeenCalledWith("/api/measurements/vitals/1"));
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
+  });
+
+  it("deletes the lipids profile and navigates back when it was the only remaining section", async () => {
+    mockApi({ lipids: [lipidsRecord] });
+    mockApiDelete.mockResolvedValue({});
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MeasurementDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText("210 mg/dL")).toBeTruthy());
+    fireEvent.press(screen.getByText("Eliminar"));
+
+    await waitFor(() => expect(mockApiDelete).toHaveBeenCalledWith("/api/measurements/lipids/1"));
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
   });
 
   it("shows an error alert when deletion fails", async () => {
