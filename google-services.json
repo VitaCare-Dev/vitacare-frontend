@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "233872645083",
+    "project_id": "vitacare-a6641",
+    "storage_bucket": "vitacare-a6641.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:233872645083:android:49804ea9cf139794f3e5fe",
+        "android_client_info": {
+          "package_name": "com.vitacare.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "233872645083-ov1632qvehavhcfocj2dfmgs11ep38dj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vitacare.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "233872645083-8tmlg45vb7nn6aro1hg7tlrther6l3n3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDupJCAaTDwBbNJZfRo5Hrb30c6W5tDU2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "233872645083-8tmlg45vb7nn6aro1hg7tlrther6l3n3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

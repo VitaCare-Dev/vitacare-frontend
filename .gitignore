@@ -33,11 +33,6 @@ yarn-error.*
 # local env files
 .env*.local
 
-# Firebase native config (contiene el API key ligado al proyecto; no es secreto
-# per se, pero se maneja igual que env.ps1: cada dev lo descarga de Firebase)
-google-services.json
-GoogleService-Info.plist
-
 # typescript
 *.tsbuildinfo
 
