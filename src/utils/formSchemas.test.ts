@@ -110,7 +110,7 @@ describe("changePasswordSchema", () => {
 
 describe("registerPersonalSchema", () => {
   const validPersonal = {
-    rut: "11.111.111-1",
+    rut: "12.345.678-5",
     nombre: "María",
     apellidoPaterno: "Pérez",
     apellidoMaterno: "",
@@ -125,6 +125,12 @@ describe("registerPersonalSchema", () => {
   it("rejects a missing RUT", () => {
     expect(
       registerPersonalSchema.safeParse({ ...validPersonal, rut: "" }).success
+    ).toBe(false);
+  });
+
+  it("rejects a RUT with an incorrect check digit", () => {
+    expect(
+      registerPersonalSchema.safeParse({ ...validPersonal, rut: "12.345.678-9" }).success
     ).toBe(false);
   });
 

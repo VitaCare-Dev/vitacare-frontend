@@ -3,6 +3,15 @@ import { z } from "zod";
 import { MEASUREMENT_RANGES } from "@/utils/measurementRanges";
 import { getPasswordRequirementErrors } from "@/utils/passwordValidation";
 import { extractPhoneDigits } from "@/utils/phoneFormat";
+import { isValidRut } from "@/utils/rutFormat";
+
+const rutField = z
+  .string()
+  .trim()
+  .min(1, "El RUT es obligatorio.")
+  .refine((value) => isValidRut(value), {
+    message: "Ingresa un RUT válido (verifica el dígito verificador).",
+  });
 
 const requiredText = (fieldLabel: string) => z.string().trim().min(1, `${fieldLabel} es obligatorio.`);
 
@@ -76,7 +85,7 @@ export const changePasswordSchema = z
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 export const registerPersonalSchema = z.object({
-  rut: requiredText("El RUT"),
+  rut: rutField,
   nombre: requiredText("El nombre"),
   apellidoPaterno: requiredText("El apellido paterno"),
   apellidoMaterno: z.string(),

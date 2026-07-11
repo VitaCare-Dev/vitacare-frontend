@@ -1,4 +1,4 @@
-import { formatRut } from "@/utils/rutFormat";
+import { formatRut, isValidRut } from "@/utils/rutFormat";
 
 describe("formatRut", () => {
   it("returns an empty string for empty input", () => {
@@ -27,5 +27,36 @@ describe("formatRut", () => {
 
   it("strips characters other than digits and k/K", () => {
     expect(formatRut("12.345.678-9")).toBe("12.345.678-9");
+  });
+});
+
+describe("isValidRut", () => {
+  it("accepts a RUT with the correct check digit", () => {
+    expect(isValidRut("12345678-5")).toBe(true);
+  });
+
+  it("accepts a formatted RUT with dots and dash", () => {
+    expect(isValidRut("12.345.678-5")).toBe(true);
+  });
+
+  it("accepts a lowercase 'k' check digit", () => {
+    // Cuerpo 6 -> suma=12, resto=11-(12%11)=10 -> DV correcto es K.
+    expect(isValidRut("6-k")).toBe(true);
+  });
+
+  it("rejects a RUT with an incorrect check digit", () => {
+    expect(isValidRut("12345678-9")).toBe(false);
+  });
+
+  it("rejects an empty string", () => {
+    expect(isValidRut("")).toBe(false);
+  });
+
+  it("rejects a body that is not numeric", () => {
+    expect(isValidRut("abcdefgh-5")).toBe(false);
+  });
+
+  it("rejects a single character", () => {
+    expect(isValidRut("5")).toBe(false);
   });
 });
