@@ -20,6 +20,7 @@ import { auth } from "@/config/firebase";
 import { refreshAuthProfile } from "@/context/AuthContext";
 import { chileRegions, getComunasByRegion } from "@/data/chileRegions";
 import { ApiError, apiPost } from "@/services/apiClient";
+import { extractPhoneDigits } from "@/utils/phoneFormat";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
 import {
@@ -156,7 +157,10 @@ export default function RegisterScreen() {
         apellidoPaterno: personal.apellidoPaterno.trim(),
         apellidoMaterno: personal.apellidoMaterno.trim() || undefined,
         fechaNacimiento: toIsoDate(personal.birthDate),
-        telefonoPrincipal: personal.telefono.trim(),
+        // El backend espera solo los dígitos del abonado (ver
+        // patient-service PatientRequestDto.telefonoPrincipal), no el valor
+        // con formato "+56 9 XXXX XXXX" que guarda PhoneInput.
+        telefonoPrincipal: extractPhoneDigits(personal.telefono),
       });
       // La dirección se crea como paso propio (con su propio reintento): si
       // solo ella falla, no hay que reintentar la creación del paciente

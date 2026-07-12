@@ -129,8 +129,13 @@ export default function EditProfileScreen() {
       apellidoPaterno: values.apellidoPaterno.trim(),
       apellidoMaterno: values.apellidoMaterno.trim() || undefined,
       fechaNacimiento: toIsoDate(values.birthDate),
-      telefonoPrincipal: values.telefonoPrincipal.trim(),
-      telefonoSecundario: values.telefonoSecundario.trim() || undefined,
+      // El backend espera solo los dígitos del abonado (ver
+      // patient-service PatientRequestDto.telefonoPrincipal), no el valor
+      // con formato "+56 9 XXXX XXXX" que guarda el formulario.
+      telefonoPrincipal: extractPhoneDigits(values.telefonoPrincipal),
+      telefonoSecundario: values.telefonoSecundario.trim()
+        ? extractPhoneDigits(values.telefonoSecundario)
+        : undefined,
     });
   }
 
