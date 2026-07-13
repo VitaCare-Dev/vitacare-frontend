@@ -312,6 +312,47 @@ describe("MedicalInfoScreen", () => {
     await waitFor(() => expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
+  it("removes a disease when confirmed and refreshes diseases and thresholds", async () => {
+    mockApi({
+      diseases: [{ idEnfermedad: 1, nombreEnfermedad: "Diabetes", descripcion: "Desc" }],
+    });
+    mockApiDelete.mockResolvedValue(undefined);
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("Diabetes")).toBeTruthy());
+
+    const callsBefore = mockApiGet.mock.calls.length;
+    fireEvent.press(screen.getByText("Eliminar"));
+
+    await waitFor(() =>
+      expect(mockApiDelete).toHaveBeenCalledWith("/api/patients/me/diseases/1")
+    );
+    await waitFor(() => expect(mockApiGet.mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it("shows an error alert when removing a disease fails", async () => {
+    mockApi({
+      diseases: [{ idEnfermedad: 1, nombreEnfermedad: "Diabetes", descripcion: "Desc" }],
+    });
+    mockApiDelete.mockRejectedValue(new ApiError(500, "backend caído"));
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      buttons?.[1]?.onPress?.();
+    });
+    renderWithProviders(<MedicalInfoScreen />);
+    await waitFor(() => expect(screen.getByText("Diabetes")).toBeTruthy());
+
+    fireEvent.press(screen.getByText("Eliminar"));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "No se pudo eliminar",
+        "Ocurrió un problema inesperado. Intenta de nuevo más tarde."
+      )
+    );
+  });
+
   it("refetches all sections when the user pulls to refresh", async () => {
     mockApi();
     renderWithProviders(<MedicalInfoScreen />);

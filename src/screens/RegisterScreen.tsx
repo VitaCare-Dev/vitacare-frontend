@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, updateProfile } from "firebase/auth";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -61,6 +61,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   const credentialsForm = useForm<RegisterCredentialsValues>({
     resolver: zodResolver(registerCredentialsSchema),
@@ -202,7 +203,33 @@ export default function RegisterScreen() {
   }
 
   function handleNextFromCredentials() {
-    credentialsForm.handleSubmit(() => setStep(2))();
+    credentialsForm.handleSubmit(async ({ email }) => {
+      setCheckingEmail(true);
+      try {
+        // Se valida el correo duplicado acá, antes de pedir el resto de los
+        // datos: antes se descubría recién al final (paso 3, al crear la
+        // cuenta de Firebase), forzando a completar todo el formulario para
+        // enterarse. fetchSignInMethodsForEmail no crea nada, solo consulta.
+        const methods = await fetchSignInMethodsForEmail(auth, email.trim());
+        if (methods.length > 0) {
+          credentialsForm.setError("email", {
+            type: "manual",
+            message: "Ya existe una cuenta con ese correo.",
+          });
+          return;
+        }
+        setStep(2);
+      } catch (error) {
+        // Si la verificación en sí falla (red, etc.), no se bloquea el
+        // avance: el duplicado, si existe, igual se detecta al crear la
+        // cuenta en el paso 3 (createUserWithEmailAndPassword también lo
+        // valida), solo que más tarde.
+        console.error("No se pudo verificar si el correo ya está registrado:", error);
+        setStep(2);
+      } finally {
+        setCheckingEmail(false);
+      }
+    })();
   }
 
   function handleNextFromPersonal() {
@@ -335,7 +362,11 @@ export default function RegisterScreen() {
               )}
             />
 
-            <AppButton title="Siguiente" onPress={handleNextFromCredentials} />
+            <AppButton
+              title={checkingEmail ? "Verificando..." : "Siguiente"}
+              onPress={handleNextFromCredentials}
+              disabled={checkingEmail}
+            />
           </>
         )}
 

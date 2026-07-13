@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -17,6 +17,7 @@ import { apiDelete, apiGet, nullOn404 } from "@/services/apiClient";
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeContext";
+import { extractPhoneDigits, formatChileanPhone } from "@/utils/phoneFormat";
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -55,6 +56,15 @@ type ThresholdRecord = {
   temperaturaMax: number;
 };
 
+/**
+ * El backend guarda solo los dígitos del abonado (sin el prefijo "+56 9"),
+ * así que hay que reconstruirlo acá para mostrarlo como el usuario lo espera.
+ */
+function formatDisplayPhone(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return formatChileanPhone(extractPhoneDigits(value));
+}
+
 /** Espejo de MedicationDto del BFF. */
 type MedicationRecord = {
   idMedicamento: number;
@@ -65,6 +75,7 @@ export default function MedicalInfoScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const authState = useAuth();
   const enabled = authState.status === "authenticated";
 
@@ -124,6 +135,36 @@ export default function MedicalInfoScreen() {
   }
 
   const activeMedications = medications.filter((item) => item.activo === 1);
+
+  const removeDiseaseMutation = useMutation({
+    mutationFn: (idEnfermedad: number) => apiDelete(`/api/patients/me/diseases/${idEnfermedad}`),
+    onSuccess: () => {
+      // Los umbrales médicos se recalculan en el backend al quitar la
+      // enfermedad (pueden relajarse o desaparecer si era la única), así que
+      // también hay que refrescar esa consulta, no solo la de enfermedades.
+      queryClient.invalidateQueries({ queryKey: queryKeys.patientDiseases });
+      queryClient.invalidateQueries({ queryKey: queryKeys.patientThresholds });
+    },
+    onError: (error) => {
+      console.error("Error al eliminar la enfermedad:", error);
+      Alert.alert("No se pudo eliminar", "Ocurrió un problema inesperado. Intenta de nuevo más tarde.");
+    },
+  });
+
+  function handleRemoveDisease(disease: DiseaseRecord) {
+    Alert.alert(
+      "Eliminar enfermedad",
+      `¿Quitar "${disease.nombreEnfermedad}" de tus enfermedades registradas? Tus umbrales médicos se recalcularán.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => removeDiseaseMutation.mutate(disease.idEnfermedad),
+        },
+      ]
+    );
+  }
 
   const [reauthVisible, setReauthVisible] = useState(false);
   const [reauthError, setReauthError] = useState("");
@@ -244,10 +285,10 @@ export default function MedicalInfoScreen() {
             }
           />
           <InfoRow label="Fecha de nacimiento" value={patient?.fechaNacimiento ?? "-"} />
-          <InfoRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
+          <InfoRow label="Teléfono principal" value={formatDisplayPhone(patient?.telefonoPrincipal) ?? "-"} />
           <InfoRow
             label="Teléfono secundario"
-            value={patient?.telefonoSecundario ?? "Sin registrar"}
+            value={formatDisplayPhone(patient?.telefonoSecundario) ?? "Sin registrar"}
           />
         </InfoCard>
       </View>
@@ -303,7 +344,16 @@ export default function MedicalInfoScreen() {
             {diseases.length > 0 ? (
               diseases.map((disease) => (
                 <View key={disease.idEnfermedad} style={styles.diseaseItem}>
-                  <Text style={styles.diseaseName}>{disease.nombreEnfermedad}</Text>
+                  <View style={styles.diseaseItemHeader}>
+                    <Text style={styles.diseaseName}>{disease.nombreEnfermedad}</Text>
+                    <Pressable
+                      onPress={() => handleRemoveDisease(disease)}
+                      disabled={removeDiseaseMutation.isPending}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.removeDiseaseText}>Eliminar</Text>
+                    </Pressable>
+                  </View>
                   <Text style={styles.diseaseDescription}>{disease.descripcion}</Text>
                 </View>
               ))
@@ -452,9 +502,21 @@ function createStyles(theme: VitaCareThemeType) {
   diseaseItem: {
     gap: 2,
   },
+  diseaseItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   diseaseName: {
     color: theme.colors.text,
     fontSize: theme.typography.body,
+    fontFamily: theme.typography.fontFamily,
+    fontWeight: "700",
+  },
+  removeDiseaseText: {
+    // Mismo rojo que AppButton usa para su variante "danger".
+    color: "#B54444",
+    fontSize: theme.typography.small,
     fontFamily: theme.typography.fontFamily,
     fontWeight: "700",
   },

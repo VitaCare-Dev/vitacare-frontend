@@ -25,9 +25,11 @@ jest.mock("@/context/AuthContext", () => ({
 
 const mockCreateUser = jest.fn();
 const mockUpdateProfile = jest.fn();
+const mockFetchSignInMethodsForEmail = jest.fn();
 jest.mock("firebase/auth", () => ({
   createUserWithEmailAndPassword: (...args: unknown[]) => mockCreateUser(...args),
   updateProfile: (...args: unknown[]) => mockUpdateProfile(...args),
+  fetchSignInMethodsForEmail: (...args: unknown[]) => mockFetchSignInMethodsForEmail(...args),
 }));
 
 jest.mock("@/services/apiClient", () => ({
@@ -74,6 +76,9 @@ describe("RegisterScreen", () => {
     mockCreateUser.mockReset();
     mockUpdateProfile.mockReset();
     mockApiPost.mockReset();
+    // Por defecto el correo no está registrado: los tests que no verifican
+    // este chequeo en particular no necesitan configurarlo aparte.
+    mockFetchSignInMethodsForEmail.mockReset().mockResolvedValue([]);
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
   });
 
@@ -157,6 +162,31 @@ describe("RegisterScreen", () => {
     );
     await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
     expect(mockRefreshAuthProfile).not.toHaveBeenCalled();
+  });
+
+  it("blocks moving to step 2 when the email is already registered, without creating a Firebase account", async () => {
+    mockFetchSignInMethodsForEmail.mockResolvedValue(["password"]);
+    renderWithProviders(<RegisterScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("correo@vitacare.cl"), "maria@vitacare.cl");
+    const [password, confirm] = screen.getAllByPlaceholderText("••••••••");
+    fireEvent.changeText(password, strongPassword);
+    fireEvent.changeText(confirm, strongPassword);
+    fireEvent.press(screen.getByText("Siguiente"));
+
+    await waitFor(() => expect(screen.getByText("Ya existe una cuenta con ese correo.")).toBeTruthy());
+    expect(screen.getByText("Paso 1 de 3 — Tu cuenta.")).toBeTruthy();
+    expect(mockCreateUser).not.toHaveBeenCalled();
+    expect(mockFetchSignInMethodsForEmail).toHaveBeenCalledWith(expect.anything(), "maria@vitacare.cl");
+  });
+
+  it("still proceeds to step 2 if checking email availability fails (e.g. network error)", async () => {
+    mockFetchSignInMethodsForEmail.mockRejectedValue(new Error("network down"));
+    renderWithProviders(<RegisterScreen />);
+
+    await fillCredentialsStep();
+
+    expect(screen.getByText("Paso 2 de 3 — Tus datos personales.")).toBeTruthy();
   });
 
   it("shows a friendly error when the email is already registered", async () => {

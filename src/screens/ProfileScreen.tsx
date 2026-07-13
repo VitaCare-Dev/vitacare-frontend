@@ -20,6 +20,16 @@ import { pickProfilePhoto, takeProfilePhoto, uploadProfilePhoto } from "@/servic
 import { queryKeys } from "@/services/queryKeys";
 import type { VitaCareThemeType } from "@/theme/theme";
 import { useTheme, useThemeMode } from "@/theme/ThemeContext";
+import { extractPhoneDigits, formatChileanPhone } from "@/utils/phoneFormat";
+
+/**
+ * El backend guarda solo los dígitos del abonado (sin el prefijo "+56 9"),
+ * así que hay que reconstruirlo acá para mostrarlo como el usuario lo espera.
+ */
+function formatDisplayPhone(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return formatChileanPhone(extractPhoneDigits(value));
+}
 
 /** Espejo de PatientDto del BFF. */
 type PatientRecord = {
@@ -203,10 +213,10 @@ export default function ProfileScreen() {
 
       <View style={styles.card}>
         <DetailRow label="Fecha de nacimiento" value={patient?.fechaNacimiento ?? "-"} />
-        <DetailRow label="Teléfono principal" value={patient?.telefonoPrincipal ?? "-"} />
+        <DetailRow label="Teléfono principal" value={formatDisplayPhone(patient?.telefonoPrincipal) ?? "-"} />
         <DetailRow
           label="Teléfono secundario"
-          value={patient?.telefonoSecundario ?? "Sin registrar"}
+          value={formatDisplayPhone(patient?.telefonoSecundario) ?? "Sin registrar"}
         />
         {addressesQuery.isError ? (
           <InlineErrorNotice
